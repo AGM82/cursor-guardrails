@@ -3,31 +3,44 @@ description: Project-specific context — fill this in for every project
 alwaysApply: true
 ---
 
-# Project: <PROJECT NAME>
-
-> This is the one file you customise for every project. Replace every <PLACEHOLDER> and delete this line.
+# Project: cursor-guardrails
 
 ## What this is
-<One paragraph: what the app does, who uses it, and the core workflow.>
+
+A reusable Cursor project template — not a product app. It ships guardrails (rules, hooks, CI, slash commands) and a minimal React + TypeScript demo so `npm run dev`, `typecheck`, `lint`, and `test` all work out of the box. New projects start from this repo via GitHub **Use this template**; existing projects can adopt layers with `/guardrail-upgrade`.
 
 ## Domain glossary
-<Define the domain terms the agent must use correctly, e.g. endorsement, schedule, peril, excess, sum insured, broker.>
+
+- **Guardrail tier** — One layer of protection (workflow → advisory → toolchain → runtime → automation → workflows → review).
+- **Deterministic enforcement** — Checks a machine runs (lint, typecheck, CI) that cannot be skipped by an AI agent.
+- **Advisory rule** — Prose in `.cursor/rules/*.mdc` or `AGENTS.md`; helpful but not enforced alone.
+- **Template** — This repo; copy or fork to start another project. Customise per-project files (`90-project-context.mdc`, `LICENSE`, etc.) in each child project.
 
 ## Tech stack
-Default: React + TypeScript + Tailwind + shadcn/ui + Recharts. Deviations for this project:
-<List any departures from the default, or "None.">
+
+Default scaffold: React + TypeScript + Vite + Vitest + ESLint + Prettier + Husky. No Tailwind/shadcn in the demo app yet — those conventions live in `30-react-stack.mdc` for projects that add them.
 
 ## Canonical files (reference these — do not reinvent)
-- Component: <path to the reference component>
-- API route / data access: <path>
-- Test: <path>
+
+- Component: `src/components/Greeting.tsx`
+- Utility: `src/lib/currency.ts`
+- Test: `src/components/Greeting.test.tsx`, `src/lib/currency.test.ts`
+- CI: `.github/workflows/ci.yml`
+- Agent entry: `AGENTS.md`
 
 ## Architecture decisions
-<State management, data layer, auth approach, routing — anything load-bearing.>
+
+- Single-page Vite app under `src/`; path alias `@/` → `src/`.
+- Agent governance: `.cursor/rules/` (advisory), `.cursor/hooks.json` (runtime), Husky + GitHub Actions (automation).
+- Branch protection on `main` requires three CI jobs before merge.
 
 ## Data classification (POPIA)
-- Personal-information categories this app touches: <e.g. name, contact details, policy number — or "None; templated data only">
-- Retention / access constraints: <state them, or "N/A for templated data">
+
+- Personal-information categories this app touches: None; templated demo data only (`formatZar` uses fake amounts).
+- Retention / access constraints: N/A for templated data. Real projects must fill this section in their own `90-project-context.mdc`.
 
 ## Out of scope / do not touch
-<Areas the agent must not modify without explicit instruction.>
+
+- Do not treat `src/` demo code as production features — replace when starting a real app.
+- Do not commit `.env`, real client data, or credentials.
+- Do not weaken CI, hooks, or security scans without explicit instruction.
