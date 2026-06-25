@@ -4,7 +4,10 @@
 
 - Node.js (version pinned in `.nvmrc`; currently 20). If you use `nvm`, run `nvm use`.
 - npm (ships with Node).
-- Optional but recommended: [gitleaks](https://github.com/gitleaks/gitleaks#installing) for local secret scanning. CI enforces it regardless.
+- Optional but recommended: [gitleaks](https://github.com/gitleaks/gitleaks#installing) for local secret scanning. CI enforces it regardless; local install gives faster feedback.
+- Optional but recommended: [gh CLI](https://cli.github.com) enables the `/pr` slash command to open pull requests from the terminal. Install on Windows: `winget install --id GitHub.cli`.
+
+> **Windows PowerShell note:** PowerShell does not support the `&&` command separator. Run chained commands on separate lines, or use `;` between them.
 
 ## Setup
 
