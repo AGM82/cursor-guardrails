@@ -31,7 +31,7 @@ Prose rules are _advisory_ — an agent can drift from them after a few turns. L
 - `.cursor/rules/40-tooling-supply-chain.mdc` — dependency and MCP/supply-chain hygiene
 - `.cursor/commands/` — the slash-command workflows
 - `.cursor/hooks.json` + `.cursor/hooks/` — runtime guardrails (block destructive shell commands and secret reads; audit log)
-- The toolchain and automation layer: `tsconfig.json`, `eslint.config.js`, `.prettierrc.json`, `commitlint.config.js`, `.editorconfig`, `.gitattributes`, `.nvmrc`, `.husky/`, `.github/workflows/ci.yml`, `.github/dependabot.yml`, `.github/CODEOWNERS`
+- The toolchain and automation layer: `tsconfig.json`, `eslint.config.js`, `.prettierrc.json`, `commitlint.config.mjs`, `.editorconfig`, `.gitattributes`, `.nvmrc`, `.husky/`, `.github/workflows/ci.yml`, `.github/dependabot.yml`, `.github/CODEOWNERS`
 - `CONTRIBUTING.md`
 
 **Per-project — customise these (they carry `<PLACEHOLDER>` markers):**
@@ -42,7 +42,7 @@ Prose rules are _advisory_ — an agent can drift from them after a few turns. L
 - `.cursorignore` — tune to the project's data and assets
 - `LICENSE` + `package.json` `license` field — **choose per project.** The template ships a proprietary "all rights reserved" notice as a safe default; set the right license (proprietary, MIT, etc.) and the correct copyright holder (you, your employer, or another entity) for each project. `package.json` is `private: true` with `license: "UNLICENSED"` to prevent accidental publishing — adjust if you intend to publish.
 
-## Setup
+## Setup (new project)
 
 1. Create a repo from this template (GitHub → **Use this template**), or copy these files into your project.
 2. `npm install` (installs dependencies and activates the husky hooks). If you use `nvm`, run `nvm use` first to match `.nvmrc`.
@@ -53,6 +53,37 @@ Prose rules are _advisory_ — an agent can drift from them after a few turns. L
 7. On GitHub: enable branch protection on `main` (see **Branch protection** below).
 
 This template ships a minimal working React + TypeScript + Vite app (`index.html`, `src/`) with an example component, a pure-function utility, and tests, so `dev`/`build`/`test` work out of the box. Replace it with your real application.
+
+## Existing project? Start here
+
+Adopt the guardrails incrementally without touching your application code.
+
+**Quick start (day zero, nothing to copy):** Open the project in Cursor, start an Agent chat, and paste the bootstrap prompt from [`docs/bootstrap-guardrail-upgrade.md`](docs/bootstrap-guardrail-upgrade.md). The agent will copy the command files, capture a baseline, and walk you through the gap analysis.
+
+**Once `.cursor/commands/` is in place**, use `/guardrail-upgrade` in Agent chat for all future runs.
+
+**Recommended first-adoption order:**
+
+| Step                 | What happens                                               |
+| -------------------- | ---------------------------------------------------------- |
+| 0 — Bootstrap        | Copy `.cursor/commands/` from the template                 |
+| 0.5 — Baseline       | Capture current typecheck/lint errors before any changes   |
+| 0.6 — Snapshot       | `git commit` an undo point                                 |
+| 1–3 — Safe layers    | AI rules, git hygiene, commit discipline — no code touched |
+| 4–5 — Toolchain + CI | Merge carefully; may surface pre-existing errors           |
+| 6 — Code audit       | Align existing code with installed rules; fix blockers     |
+| 7 — Governance       | Enable branch protection, confirm PR-only workflow         |
+
+**Key guarantees the command enforces:**
+
+- Captures a baseline _before_ changes so you know which errors already existed.
+- Never overwrites `src/`, `.env`, or your `tsconfig.json` wholesale.
+- Never removes lines from `.gitignore`.
+- Stops and asks if anything is ambiguous.
+
+See [`docs/guardrail-upgrade-observations.md`](docs/guardrail-upgrade-observations.md) for lessons learned from a real adoption.
+
+**Template versioning:** after a successful upgrade, a `.cursor/guardrail-version` file is written to track which template release was applied. Future runs flag layers that have drifted. Tag your own template releases as `guardrail-v1.0.0` on GitHub to participate in this system.
 
 ## GitHub template (maintainers, one-time)
 

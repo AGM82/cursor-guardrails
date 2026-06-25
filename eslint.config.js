@@ -6,7 +6,7 @@ import security from "eslint-plugin-security";
 // Flat config (ESLint 9). If a plugin's flat-config export name differs in the
 // version you resolve, adjust the imports below — see README "Notes".
 export default tseslint.config(
-  { ignores: ["dist", "build", ".next", "coverage", "node_modules"] },
+  { ignores: ["dist", "build", ".next", "coverage", "node_modules", ".cursor/**"] },
   js.configs.recommended,
   // Type-checked rules are expensive and only meaningful for TS source, so we
   // scope them to .ts/.tsx. Plain JS/ESM (config files, hook scripts) is handled

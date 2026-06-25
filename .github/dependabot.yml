@@ -11,6 +11,20 @@ updates:
       # Batch routine dev-dependency bumps into a single PR to cut noise.
       dev-dependencies:
         dependency-type: development
+      # Keep react and react-dom in sync — they must always be the same version.
+      react-runtime:
+        patterns:
+          - "react"
+          - "react-dom"
+    ignore:
+      # ESLint major versions frequently break plugins (e.g. eslint-plugin-jsx-a11y
+      # caps at eslint@^9). Require an explicit compatibility check before merging.
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@eslint/js"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "typescript-eslint"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: "/"

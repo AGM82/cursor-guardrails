@@ -8,3 +8,4 @@ Paste this into Cursor → Settings → Rules. These are universal habits that s
 - After a series of edits, run the project's typecheck, lint, and tests before calling the work done.
 - Never put secrets, credentials, or real personal data in source, logs, or commits.
 - Treat me as a collaborator: explain trade-offs, surface risks, and push back on approaches you think are wrong.
+- When adopting guardrails on an existing project: if `.cursor/commands/guardrail-upgrade.md` is missing, read `docs/bootstrap-guardrail-upgrade.md` in the cursor-guardrails template, or paste the bootstrap prompt from that file before running `/guardrail-upgrade`.
