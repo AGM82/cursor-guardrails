@@ -2,6 +2,8 @@
 
 A portable, opinionated baseline for building production-grade software in Cursor. It encodes a layered guardrail system grounded in Cursor's own agent best practices: plan first, keep written rules thin, and put the real weight into deterministic enforcement an agent cannot bypass.
 
+<!-- branch protection test — safe to delete with this PR -->
+
 ## Why this exists
 
 Prose rules are _advisory_ — an agent can drift from them after a few turns. Linters, type errors, failing tests, and CI gates are _deterministic_ — they cannot be ignored. Cursor's own guidance is explicit: don't copy style guides into rules, use a linter instead, and reference files rather than their contents. This template follows that — thin rules, heavy enforcement.
