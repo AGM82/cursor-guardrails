@@ -1,0 +1,32 @@
+---
+description: Frontend conventions for React, TypeScript, Tailwind, shadcn/ui, and Recharts
+globs: **/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Stack
+
+React + TypeScript (strict), Tailwind CSS, shadcn/ui, Lucide icons, Recharts.
+**This file is the stack override point.** If a project deviates, edit here and note the deviation in `90-project-context.mdc`.
+
+# Components
+
+- Functional components with typed props. No `any` — model real types. Co-locate types with the component or in a `types.ts`.
+- Compose from shadcn/ui primitives (`@/components/ui/*`). Do not hand-roll inputs, dialogs, or selects that shadcn already provides.
+- Reference component: see `90-project-context.mdc` under Canonical files.
+- Tailwind for styling. No inline style objects for static styling. Extract repeated class patterns into a component, not a CSS file.
+
+# State and data
+
+- Local UI state with `useState`/`useReducer`. Server state goes through the project's data layer (see project context), not ad-hoc `fetch` calls inside components.
+- No `localStorage`/`sessionStorage` unless the project explicitly allows it.
+
+# Design discipline
+
+- Clarity, hierarchy, and restraint over decoration. Generous whitespace, a deliberate type scale, a constrained palette. No purple gradients, glassmorphism, or emoji-heavy UI by default.
+- Data-dense screens (schedules, claims, policy detail) prioritise scannable tables and information density over flourish.
+- Accessibility is enforced (`eslint-plugin-jsx-a11y`): label every control, maintain contrast, support keyboard interaction. Target WCAG 2.2 AA.
+
+# Charts
+
+- Recharts for data visualisation. Format currency as ZAR and use metric units. Always provide accessible labels and a legend.

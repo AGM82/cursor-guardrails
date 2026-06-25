@@ -1,0 +1,24 @@
+---
+description: Core engineering workflow and non-negotiables for every task
+alwaysApply: true
+---
+
+# How we work
+
+- Plan before building. For any non-trivial change, use Plan Mode (Shift+Tab), answer the clarifying questions, and get the plan approved before writing code. Save plans to `.cursor/plans/`.
+- Make the smallest change that satisfies the requirement. Search the codebase for existing patterns before adding anything new. Extend before you invent.
+- Prove correctness. After a series of edits, run `npm run typecheck`, `npm run lint`, and `npm run test`. A task is not done until these pass.
+- Use only what you can verify: files you have read, the user's instructions, and tool results. If information is missing, search, then ask.
+- Match the codebase. The canonical component, API route, and test for this project are listed in `90-project-context.mdc`.
+
+# Commands
+- `npm run dev` — local dev server
+- `npm run build` — production build
+- `npm run typecheck` — TypeScript, no emit
+- `npm run lint` — ESLint
+- `npm run test` — test suite
+
+# Hard stops
+- No secrets, credentials, or real client data in source, logs, or commits.
+- Do not modify tests to make failing code pass.
+- Do not disable a linter or type rule to silence an error; fix the cause.

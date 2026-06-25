@@ -1,0 +1,22 @@
+---
+description: Tooling, dependency, and supply-chain hygiene for agents and contributors
+globs: package.json,**/*.lock,.cursor/mcp.json
+alwaysApply: false
+---
+
+# Dependencies
+
+- Add dependencies with the package manager (`npm install`), never by hand-editing version strings. Commit the updated `package-lock.json`.
+- Prefer extending what is already installed over adding a new package. Justify every new dependency in the plan.
+- Update dependencies one at a time and re-run `typecheck`, `lint`, and `test` after each. Group successful updates into a single `chore(deps):` commit. Flag major-version bumps for human review.
+- Treat `npm audit` findings at `high` or above as blockers. The CI dependency-audit step enforces this.
+
+# Third-party rules, skills, and MCP servers
+
+- Rules, skills, and MCP servers are executable instructions and a supply-chain surface. Read any you import before trusting it.
+- MCP servers must be allowlisted deliberately in `.cursor/mcp.json`. Do not add a server, or widen its scope, without explicit approval. Prefer read-only/least-privilege configurations.
+- Never pass secrets to an MCP server through prompts or arguments; use environment variables the server reads itself.
+
+# Deterministic enforcement (do not bypass)
+
+- Cursor hooks in `.cursor/hooks.json` gate shell commands and file reads at runtime; pre-commit (husky + gitleaks) and CI (typecheck, lint, test, build, audit, secret scan, SAST) gate every change. Do not disable, weaken, or work around these to get a change through — fix the underlying issue.
