@@ -2,6 +2,8 @@
 
 A portable, opinionated baseline for building production-grade software in Cursor. It encodes a layered guardrail system grounded in Cursor's own agent best practices: plan first, keep written rules thin, and put the real weight into deterministic enforcement an agent cannot bypass.
 
+**Live template:** [github.com/AGM82/cursor-guardrails](https://github.com/AGM82/cursor-guardrails) — use **Use this template** to start a new project.
+
 ## Why this exists
 
 Prose rules are _advisory_ — an agent can drift from them after a few turns. Linters, type errors, failing tests, and CI gates are _deterministic_ — they cannot be ignored. Cursor's own guidance is explicit: don't copy style guides into rules, use a linter instead, and reference files rather than their contents. This template follows that — thin rules, heavy enforcement.
@@ -15,7 +17,7 @@ Prose rules are _advisory_ — an agent can drift from them after a few turns. L
 | 2 — Toolchain  | TypeScript strict, ESLint (security + a11y), Prettier, commitlint, tests                                                     | Repo        | Deterministic |
 | 3 — Runtime    | Cursor hooks (`.cursor/hooks.json`) gate shell commands and secret-file reads, and audit-log agent activity                  | Repo        | Deterministic |
 | 4 — Automation | Pre-commit (husky + lint-staged + gitleaks) and CI (typecheck, lint, test, build, `npm audit`, gitleaks, Semgrep OWASP SAST) | Repo / CI   | Deterministic |
-| 5 — Workflows  | Commands in `.cursor/commands/*.md` (`/review`, `/pr`, `/update-deps`)                                                       | Repo        | Workflow      |
+| 5 — Workflows  | Commands in `.cursor/commands/*.md` (`/review`, `/pr`, `/update-deps`, `/guardrail-upgrade`)                                 | Repo        | Workflow      |
 | 6 — Review     | Agent Review, Bugbot on PRs, TDD for logic-heavy work                                                                        | Cursor / CI | Safety net    |
 
 ## Fundamental vs per-project
@@ -48,8 +50,31 @@ Prose rules are _advisory_ — an agent can drift from them after a few turns. L
 4. Optional: install [gitleaks](https://github.com/gitleaks/gitleaks#installing) for local secret scanning. CI enforces it regardless.
 5. Fill in `.cursor/rules/90-project-context.mdc` and the other per-project items above.
 6. Commit. Husky, commitlint, and the Cursor hooks are active from the first commit.
+7. On GitHub: enable branch protection on `main` (see **Branch protection** below).
 
 This template ships a minimal working React + TypeScript + Vite app (`index.html`, `src/`) with an example component, a pure-function utility, and tests, so `dev`/`build`/`test` work out of the box. Replace it with your real application.
+
+## GitHub template (maintainers, one-time)
+
+After pushing this repo to GitHub:
+
+1. **Settings → General** → tick **Template repository** (under "Repository template"). This enables the green **Use this template** button for new projects.
+2. **Settings → Branches → Add branch ruleset** — see **Branch protection** below.
+
+## Branch protection (recommended)
+
+After the first green CI run on `main`:
+
+1. **Settings → Branches → Add branch ruleset**
+2. Name: `main protection` · Enforcement: **Active** · Target: `main`
+3. Tick: Restrict deletions, Block force pushes, Require a pull request before merging, Require status checks to pass
+4. Required checks (add all three):
+   - `Typecheck, lint, test, build`
+   - `Secret scan (gitleaks)`
+   - `SAST (Semgrep OWASP Top Ten)`
+5. Save
+
+On a free personal account, rulesets enforce on **public** repos. Confirm CI is green under **Actions** before selecting checks.
 
 > Note: this template ships dotfiles and dot-directories (`.cursor`, `.github`, `.husky`, `.cursorignore`, etc.). If you unzip it in Finder/Explorer, enable "show hidden files" so you can see them.
 
