@@ -11,6 +11,12 @@ alwaysApply: false
 - Update dependencies one at a time and re-run `typecheck`, `lint`, and `test` after each. Group successful updates into a single `chore(deps):` commit. Flag major-version bumps for human review.
 - Treat `npm audit` findings at `high` or above as blockers. The CI dependency-audit step enforces this.
 
+# Dependabot guidance
+
+- `react` and `react-dom` must always be updated together — the `react-runtime` group in `dependabot.yml` batches them into a single PR.
+- Do not merge a grouped dev-dependency PR that fails CI; close it and update packages individually.
+- ESLint major bumps (`eslint`, `@eslint/js`, `typescript-eslint`) require an explicit plugin-compatibility check before merging — `eslint-plugin-jsx-a11y` and similar plugins frequently cap at the previous major. Dependabot ignores these by default; perform them manually when ready.
+
 # Third-party rules, skills, and MCP servers
 
 - Rules, skills, and MCP servers are executable instructions and a supply-chain surface. Read any you import before trusting it.

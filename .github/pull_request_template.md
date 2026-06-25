@@ -4,10 +4,15 @@
 
 ## How it was tested
 
+**Required**
+
 - [ ] `npm run typecheck` passes
 - [ ] `npm run lint` passes
-- [ ] `npm run test` passes
 - [ ] Manually verified the affected screens / flows
+
+**Optional** (remove if this project has no test script)
+
+- [ ] `npm run test` passes
 
 ## Security & data
 
