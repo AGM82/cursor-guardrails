@@ -12,8 +12,11 @@ on:
         default: 'false'
         type: boolean
 
+# contents: write + pull-requests: write needed for auto-PR creation.
+# issues: write needed for guardrail-review issue management.
 permissions:
-  contents: read
+  contents: write
+  pull-requests: write
   issues: write
 
 concurrency:
@@ -27,60 +30,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          # Full history needed so git commit + push works in auto-PR steps.
+          fetch-depth: 0
 
       - name: Install jq
         run: sudo apt-get install -y jq
 
-      # ── Check 1: ESLint ──────────────────────────────────────────────────────
-      - name: Check ESLint version
-        id: check_eslint
-        run: |
-          CURRENT=$(node -e "const p=require('./package.json'); console.log(p.devDependencies.eslint || p.dependencies.eslint || 'unknown')" 2>/dev/null || echo "unknown")
-          LATEST=$(curl -sf https://registry.npmjs.org/eslint/latest | jq -r '.version' || echo "unknown")
-          echo "current=$CURRENT" >> $GITHUB_OUTPUT
-          echo "latest=$LATEST" >> $GITHUB_OUTPUT
-          # Strip ^ or ~ for comparison
-          CURRENT_CLEAN=$(echo "$CURRENT" | tr -d '^~')
-          CURRENT_MAJOR=$(echo "$CURRENT_CLEAN" | cut -d. -f1)
-          LATEST_MAJOR=$(echo "$LATEST" | cut -d. -f1)
-          CURRENT_MINOR=$(echo "$CURRENT_CLEAN" | cut -d. -f2)
-          LATEST_MINOR=$(echo "$LATEST" | cut -d. -f2)
-          if [ "$CURRENT_MAJOR" != "$LATEST_MAJOR" ]; then
-            echo "severity=major" >> $GITHUB_OUTPUT
-            echo "outdated=true" >> $GITHUB_OUTPUT
-          elif [ "$CURRENT_MINOR" != "$LATEST_MINOR" ]; then
-            echo "severity=minor" >> $GITHUB_OUTPUT
-            echo "outdated=true" >> $GITHUB_OUTPUT
-          else
-            echo "severity=patch" >> $GITHUB_OUTPUT
-            echo "outdated=false" >> $GITHUB_OUTPUT
-          fi
-
-      # ── Check 2: typescript-eslint ──────────────────────────────────────────
-      - name: Check typescript-eslint version
-        id: check_tseslint
-        run: |
-          CURRENT=$(node -e "const p=require('./package.json'); console.log(p.devDependencies['typescript-eslint'] || 'unknown')" 2>/dev/null || echo "unknown")
-          LATEST=$(curl -sf https://registry.npmjs.org/typescript-eslint/latest | jq -r '.version' || echo "unknown")
-          echo "current=$CURRENT" >> $GITHUB_OUTPUT
-          echo "latest=$LATEST" >> $GITHUB_OUTPUT
-          CURRENT_CLEAN=$(echo "$CURRENT" | tr -d '^~')
-          CURRENT_MAJOR=$(echo "$CURRENT_CLEAN" | cut -d. -f1)
-          LATEST_MAJOR=$(echo "$LATEST" | cut -d. -f1)
-          CURRENT_MINOR=$(echo "$CURRENT_CLEAN" | cut -d. -f2)
-          LATEST_MINOR=$(echo "$LATEST" | cut -d. -f2)
-          if [ "$CURRENT_MAJOR" != "$LATEST_MAJOR" ]; then
-            echo "severity=major" >> $GITHUB_OUTPUT
-            echo "outdated=true" >> $GITHUB_OUTPUT
-          elif [ "$CURRENT_MINOR" != "$LATEST_MINOR" ]; then
-            echo "severity=minor" >> $GITHUB_OUTPUT
-            echo "outdated=true" >> $GITHUB_OUTPUT
-          else
-            echo "severity=patch" >> $GITHUB_OUTPUT
-            echo "outdated=false" >> $GITHUB_OUTPUT
-          fi
-
-      # ── Check 3: Node.js LTS ─────────────────────────────────────────────────
+      # ── Check 1: Node.js LTS ─────────────────────────────────────────────────
       - name: Check Node.js LTS version
         id: check_node
         run: |
@@ -96,13 +53,124 @@ jobs:
             echo "severity=patch" >> $GITHUB_OUTPUT
           fi
 
-      # ── Check 4: gitleaks ────────────────────────────────────────────────────
+      # ── Auto-PR: Node.js LTS ─────────────────────────────────────────────────
+      - name: Auto-PR — update Node.js LTS
+        if: steps.check_node.outputs.outdated == 'true' && inputs.dry_run != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LATEST: ${{ steps.check_node.outputs.latest }}
+        run: |
+          BRANCH="chore/node-lts-${LATEST}"
+          # Skip if branch or open PR already exists for this version.
+          if git ls-remote --exit-code origin "refs/heads/${BRANCH}" > /dev/null 2>&1; then
+            echo "Branch ${BRANCH} already exists — skipping."
+            exit 0
+          fi
+          if gh pr list --repo "$GITHUB_REPOSITORY" --head "$BRANCH" --state open --json number --jq '.[0].number' | grep -q '[0-9]'; then
+            echo "Open PR for ${BRANCH} already exists — skipping."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          echo "${LATEST}" > .nvmrc
+          # Patch-bump guardrail version
+          CURRENT_VER=$(cat .cursor/guardrail-version | tr -d '[:space:]')
+          PATCH=$(echo "$CURRENT_VER" | cut -d. -f3)
+          NEW_PATCH=$((PATCH + 1))
+          NEW_VER="$(echo "$CURRENT_VER" | cut -d. -f1-2).${NEW_PATCH}"
+          echo "$NEW_VER" > .cursor/guardrail-version
+          git add .nvmrc .cursor/guardrail-version
+          git commit -m "chore(node): upgrade Node.js LTS to ${LATEST}
+
+Bumps .nvmrc from $(cat /dev/stdin <<< "$(git show HEAD~1:.nvmrc 2>/dev/null || echo 'previous')") to ${LATEST}.
+Bumps guardrail-version to ${NEW_VER}."
+          git push origin "$BRANCH"
+          gh pr create \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "chore(node): upgrade Node.js LTS to ${LATEST}" \
+            --body "## Auto-generated by weekly-guardrail-review
+
+Upgrades Node.js LTS in \`.nvmrc\` from the previous version to **${LATEST}**.
+Also bumps \`.cursor/guardrail-version\` (patch).
+
+### Checklist
+- [ ] CI passes (verify all 3 jobs green)
+- [ ] \`npm ci\` succeeds locally on Node ${LATEST}
+
+_Auto-created by weekly-guardrail-review workflow._" \
+            --head "$BRANCH" \
+            --base main \
+            --label "chore"
+          echo "Created PR for Node.js LTS → ${LATEST}"
+
+      # ── Check 2: gitleaks ────────────────────────────────────────────────────
       - name: Check gitleaks version
         id: check_gitleaks
         run: |
-          # Extract the tag from the image reference in ci.yml
-          CURRENT=$(grep -oP 'gitleaks/gitleaks:\K[^\s"]+' .github/workflows/ci.yml | head -1 || echo "unknown")
-          LATEST=$(curl -sf https://api.github.com/repos/gitleaks/gitleaks/releases/latest | jq -r '.tag_name' || echo "unknown")
+          # Extract the pinned version tag from ci.yml
+          CURRENT=$(grep -oP 'gitleaks/gitleaks:v\K[^\s"\\]+' .github/workflows/ci.yml | head -1 || echo "unknown")
+          LATEST=$(curl -sf https://api.github.com/repos/gitleaks/gitleaks/releases/latest | jq -r '.tag_name' | tr -d 'v' || echo "unknown")
+          echo "current=v${CURRENT}" >> $GITHUB_OUTPUT
+          echo "latest=v${LATEST}" >> $GITHUB_OUTPUT
+          if [ "$CURRENT" != "$LATEST" ] && [ "$CURRENT" != "unknown" ] && [ "$LATEST" != "unknown" ]; then
+            echo "outdated=true" >> $GITHUB_OUTPUT
+            echo "severity=patch" >> $GITHUB_OUTPUT
+          else
+            echo "outdated=false" >> $GITHUB_OUTPUT
+            echo "severity=patch" >> $GITHUB_OUTPUT
+          fi
+
+      # ── Auto-PR: gitleaks ────────────────────────────────────────────────────
+      - name: Auto-PR — update gitleaks
+        if: steps.check_gitleaks.outputs.outdated == 'true' && inputs.dry_run != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CURRENT: ${{ steps.check_gitleaks.outputs.current }}
+          LATEST: ${{ steps.check_gitleaks.outputs.latest }}
+        run: |
+          BRANCH="chore/gitleaks-${LATEST}"
+          if git ls-remote --exit-code origin "refs/heads/${BRANCH}" > /dev/null 2>&1; then
+            echo "Branch ${BRANCH} already exists — skipping."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          sed -i "s|gitleaks/gitleaks:${CURRENT}|gitleaks/gitleaks:${LATEST}|g" .github/workflows/ci.yml
+          CURRENT_VER=$(cat .cursor/guardrail-version | tr -d '[:space:]')
+          PATCH=$(echo "$CURRENT_VER" | cut -d. -f3)
+          NEW_PATCH=$((PATCH + 1))
+          NEW_VER="$(echo "$CURRENT_VER" | cut -d. -f1-2).${NEW_PATCH}"
+          echo "$NEW_VER" > .cursor/guardrail-version
+          git add .github/workflows/ci.yml .cursor/guardrail-version
+          git commit -m "ci: upgrade gitleaks to ${LATEST}
+
+Updates pinned gitleaks Docker image from ${CURRENT} to ${LATEST}.
+Bumps guardrail-version to ${NEW_VER}."
+          git push origin "$BRANCH"
+          gh pr create \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "ci: upgrade gitleaks to ${LATEST}" \
+            --body "## Auto-generated by weekly-guardrail-review
+
+Updates the pinned gitleaks Docker image tag in \`.github/workflows/ci.yml\` from **${CURRENT}** to **${LATEST}**.
+Also bumps \`.cursor/guardrail-version\` (patch).
+
+See release notes: https://github.com/gitleaks/gitleaks/releases/tag/${LATEST}
+
+_Auto-created by weekly-guardrail-review workflow._" \
+            --head "$BRANCH" \
+            --base main \
+            --label "ci"
+          echo "Created PR for gitleaks → ${LATEST}"
+
+      # ── Check 3: Semgrep ─────────────────────────────────────────────────────
+      - name: Check Semgrep version
+        id: check_semgrep
+        run: |
+          CURRENT=$(grep -oP 'semgrep/semgrep:\K[^\s"]+' .github/workflows/ci.yml | head -1 || echo "unknown")
+          LATEST=$(curl -sf https://api.github.com/repos/returntocorp/semgrep/releases/latest | jq -r '.tag_name' | tr -d 'v' || echo "unknown")
           echo "current=$CURRENT" >> $GITHUB_OUTPUT
           echo "latest=$LATEST" >> $GITHUB_OUTPUT
           if [ "$CURRENT" != "$LATEST" ] && [ "$CURRENT" != "unknown" ] && [ "$LATEST" != "unknown" ]; then
@@ -113,19 +181,75 @@ jobs:
             echo "severity=patch" >> $GITHUB_OUTPUT
           fi
 
+      # ── Auto-PR: Semgrep ─────────────────────────────────────────────────────
+      - name: Auto-PR — update Semgrep
+        if: steps.check_semgrep.outputs.outdated == 'true' && inputs.dry_run != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CURRENT: ${{ steps.check_semgrep.outputs.current }}
+          LATEST: ${{ steps.check_semgrep.outputs.latest }}
+        run: |
+          BRANCH="chore/semgrep-${LATEST}"
+          if git ls-remote --exit-code origin "refs/heads/${BRANCH}" > /dev/null 2>&1; then
+            echo "Branch ${BRANCH} already exists — skipping."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          sed -i "s|semgrep/semgrep:${CURRENT}|semgrep/semgrep:${LATEST}|g" .github/workflows/ci.yml
+          CURRENT_VER=$(cat .cursor/guardrail-version | tr -d '[:space:]')
+          PATCH=$(echo "$CURRENT_VER" | cut -d. -f3)
+          NEW_PATCH=$((PATCH + 1))
+          NEW_VER="$(echo "$CURRENT_VER" | cut -d. -f1-2).${NEW_PATCH}"
+          echo "$NEW_VER" > .cursor/guardrail-version
+          git add .github/workflows/ci.yml .cursor/guardrail-version
+          git commit -m "ci: upgrade Semgrep to ${LATEST}
+
+Updates pinned Semgrep container image from ${CURRENT} to ${LATEST}.
+Bumps guardrail-version to ${NEW_VER}."
+          git push origin "$BRANCH"
+          gh pr create \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "ci: upgrade Semgrep to ${LATEST}" \
+            --body "## Auto-generated by weekly-guardrail-review
+
+Updates the pinned Semgrep container image in \`.github/workflows/ci.yml\` from **${CURRENT}** to **${LATEST}**.
+Also bumps \`.cursor/guardrail-version\` (patch).
+
+See release notes: https://github.com/returntocorp/semgrep/releases/tag/v${LATEST}
+
+_Auto-created by weekly-guardrail-review workflow._" \
+            --head "$BRANCH" \
+            --base main \
+            --label "ci"
+          echo "Created PR for Semgrep → ${LATEST}"
+
+      # ── Check 4: Cursor changelog ────────────────────────────────────────────
+      - name: Check Cursor version
+        id: check_cursor
+        run: |
+          # Cursor publishes releases to GitHub. Track the latest known version.
+          LATEST=$(curl -sf https://api.github.com/repos/getcursor/cursor/releases/latest 2>/dev/null | jq -r '.tag_name // empty' || echo "")
+          if [ -z "$LATEST" ]; then
+            # Fallback: parse cursor.com download page for version signal
+            LATEST=$(curl -sf https://www.cursor.com/api/versions 2>/dev/null | jq -r '.version // empty' || echo "unknown")
+          fi
+          TRACKED_FILE="docs/cursor-version.txt"
+          CURRENT=$(cat "$TRACKED_FILE" 2>/dev/null | tr -d '[:space:]' || echo "unknown")
+          echo "current=$CURRENT" >> $GITHUB_OUTPUT
+          echo "latest=$LATEST" >> $GITHUB_OUTPUT
+          if [ "$LATEST" != "unknown" ] && [ "$LATEST" != "" ] && [ "$CURRENT" != "$LATEST" ]; then
+            echo "new_release=true" >> $GITHUB_OUTPUT
+          else
+            echo "new_release=false" >> $GITHUB_OUTPUT
+          fi
+
       # ── Build findings JSON and open/update issue ────────────────────────────
       - name: Build findings and manage issue
         env:
           GH_TOKEN: ${{ github.token }}
           DRY_RUN: ${{ inputs.dry_run || 'false' }}
-          ESLINT_CURRENT: ${{ steps.check_eslint.outputs.current }}
-          ESLINT_LATEST: ${{ steps.check_eslint.outputs.latest }}
-          ESLINT_OUTDATED: ${{ steps.check_eslint.outputs.outdated }}
-          ESLINT_SEVERITY: ${{ steps.check_eslint.outputs.severity }}
-          TSESLINT_CURRENT: ${{ steps.check_tseslint.outputs.current }}
-          TSESLINT_LATEST: ${{ steps.check_tseslint.outputs.latest }}
-          TSESLINT_OUTDATED: ${{ steps.check_tseslint.outputs.outdated }}
-          TSESLINT_SEVERITY: ${{ steps.check_tseslint.outputs.severity }}
           NODE_CURRENT: ${{ steps.check_node.outputs.current }}
           NODE_LATEST: ${{ steps.check_node.outputs.latest }}
           NODE_OUTDATED: ${{ steps.check_node.outputs.outdated }}
@@ -134,6 +258,13 @@ jobs:
           GITLEAKS_LATEST: ${{ steps.check_gitleaks.outputs.latest }}
           GITLEAKS_OUTDATED: ${{ steps.check_gitleaks.outputs.outdated }}
           GITLEAKS_SEVERITY: ${{ steps.check_gitleaks.outputs.severity }}
+          SEMGREP_CURRENT: ${{ steps.check_semgrep.outputs.current }}
+          SEMGREP_LATEST: ${{ steps.check_semgrep.outputs.latest }}
+          SEMGREP_OUTDATED: ${{ steps.check_semgrep.outputs.outdated }}
+          SEMGREP_SEVERITY: ${{ steps.check_semgrep.outputs.severity }}
+          CURSOR_CURRENT: ${{ steps.check_cursor.outputs.current }}
+          CURSOR_LATEST: ${{ steps.check_cursor.outputs.latest }}
+          CURSOR_NEW_RELEASE: ${{ steps.check_cursor.outputs.new_release }}
         run: bash .github/scripts/weekly-guardrail-review-manage-issue.sh
 
       - name: Summary
@@ -141,11 +272,10 @@ jobs:
           echo "### Weekly guardrail review complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Run date: $(date -u +%Y-%m-%d)" >> $GITHUB_STEP_SUMMARY
-          echo "Findings: ${{ env.findings_count }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Check | Current | Latest | Outdated |" >> $GITHUB_STEP_SUMMARY
-          echo "|-------|---------|--------|----------|" >> $GITHUB_STEP_SUMMARY
-          echo "| ESLint | ${{ steps.check_eslint.outputs.current }} | ${{ steps.check_eslint.outputs.latest }} | ${{ steps.check_eslint.outputs.outdated }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| typescript-eslint | ${{ steps.check_tseslint.outputs.current }} | ${{ steps.check_tseslint.outputs.latest }} | ${{ steps.check_tseslint.outputs.outdated }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Node.js LTS | ${{ steps.check_node.outputs.current }} | ${{ steps.check_node.outputs.latest }} | ${{ steps.check_node.outputs.outdated }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| gitleaks | ${{ steps.check_gitleaks.outputs.current }} | ${{ steps.check_gitleaks.outputs.latest }} | ${{ steps.check_gitleaks.outputs.outdated }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Current | Latest | Action |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|---------|--------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Node.js LTS | ${{ steps.check_node.outputs.current }} | ${{ steps.check_node.outputs.latest }} | ${{ steps.check_node.outputs.outdated == 'true' && 'Auto-PR created' || 'Current' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| gitleaks | ${{ steps.check_gitleaks.outputs.current }} | ${{ steps.check_gitleaks.outputs.latest }} | ${{ steps.check_gitleaks.outputs.outdated == 'true' && 'Auto-PR created' || 'Current' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Semgrep | ${{ steps.check_semgrep.outputs.current }} | ${{ steps.check_semgrep.outputs.latest }} | ${{ steps.check_semgrep.outputs.outdated == 'true' && 'Auto-PR created' || 'Current' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Cursor | ${{ steps.check_cursor.outputs.current }} | ${{ steps.check_cursor.outputs.latest }} | ${{ steps.check_cursor.outputs.new_release == 'true' && 'Review changelog' || 'Current' }} |" >> $GITHUB_STEP_SUMMARY

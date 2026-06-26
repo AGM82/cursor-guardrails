@@ -4,62 +4,37 @@ set -euo pipefail
 DATE=$(date -u +%Y-%m-%d)
 REPO="${GITHUB_REPOSITORY:?GITHUB_REPOSITORY is required}"
 
+# Note: Node.js LTS, gitleaks, and Semgrep are auto-fixed via PRs in the workflow.
+# This script only creates a human-decision issue for items that cannot be auto-fixed:
+# - Cursor new release (requires changelog review; may warrant new rules/hooks)
+# npm packages (ESLint, typescript-eslint, etc.) are handled exclusively by Dependabot.
+
 FINDINGS="[]"
 
-if [ "${ESLINT_OUTDATED:-false}" = "true" ]; then
+if [ "${CURSOR_NEW_RELEASE:-false}" = "true" ]; then
   FIND=$(jq -n \
-    --arg id "eslint" \
-    --arg label "ESLint" \
-    --arg current "${ESLINT_CURRENT}" \
-    --arg latest "${ESLINT_LATEST}" \
-    --arg severity "${ESLINT_SEVERITY}" \
-    --arg action "Run /update-deps in Cursor and accept the ESLint bump. If severity=major, check plugin compatibility first — see Knowledge Base in playbook.html." \
-    --arg cursorCommand "/update-deps" \
-    --arg moreInfoUrl "https://github.com/eslint/eslint/releases/tag/v${ESLINT_LATEST}" \
-    '{id:$id,label:$label,current:$current,latest:$latest,severity:$severity,action:$action,cursorCommand:$cursorCommand,moreInfoUrl:$moreInfoUrl}')
+    --arg id "cursor-release" \
+    --arg label "Cursor IDE" \
+    --arg current "${CURSOR_CURRENT}" \
+    --arg latest "${CURSOR_LATEST}" \
+    --arg severity "minor" \
+    --arg action "Review the Cursor changelog for new capabilities. Check whether new rules, hooks, or slash commands should be added to cursor-guardrails. Update docs/cursor-version.txt once reviewed." \
+    --arg cursorCommand "Review cursor.com/changelog for new features. Open cursor-guardrails in Cursor and ask: does this new Cursor capability warrant a new .cursor/rules entry, a new hook, or a slash command update?" \
+    --arg moreInfoUrl "https://cursor.com/changelog" \
+    '{id:$id,label:$label,current:$current,latest:$latest,severity:$severity,action:$action,cursorCommand:$cursorCommand,moreInfoUrl:$moreInfoUrl,autoPR:false}')
   FINDINGS=$(echo "$FINDINGS" | jq --argjson f "$FIND" '. + [$f]')
 fi
 
-if [ "${TSESLINT_OUTDATED:-false}" = "true" ]; then
-  FIND=$(jq -n \
-    --arg id "typescript-eslint" \
-    --arg label "typescript-eslint" \
-    --arg current "${TSESLINT_CURRENT}" \
-    --arg latest "${TSESLINT_LATEST}" \
-    --arg severity "${TSESLINT_SEVERITY}" \
-    --arg action "Run /update-deps in Cursor and accept the typescript-eslint bump. If severity=major, verify ESLint peer compatibility." \
-    --arg cursorCommand "/update-deps" \
-    --arg moreInfoUrl "https://github.com/typescript-eslint/typescript-eslint/releases/tag/v${TSESLINT_LATEST}" \
-    '{id:$id,label:$label,current:$current,latest:$latest,severity:$severity,action:$action,cursorCommand:$cursorCommand,moreInfoUrl:$moreInfoUrl}')
-  FINDINGS=$(echo "$FINDINGS" | jq --argjson f "$FIND" '. + [$f]')
-fi
-
+# Auto-PR items are noted in the issue body for visibility but are not actionable cards.
+AUTO_PR_NOTES=""
 if [ "${NODE_OUTDATED:-false}" = "true" ]; then
-  FIND=$(jq -n \
-    --arg id "nodejs" \
-    --arg label "Node.js LTS" \
-    --arg current "${NODE_CURRENT}" \
-    --arg latest "${NODE_LATEST}" \
-    --arg severity "${NODE_SEVERITY}" \
-    --arg action "Update .nvmrc and the node-version field in .github/workflows/ci.yml to ${NODE_LATEST}, then re-run CI." \
-    --arg cursorCommand "Update .nvmrc to ${NODE_LATEST} and update node-version in .github/workflows/ci.yml to match" \
-    --arg moreInfoUrl "https://nodejs.org/en/blog/release/" \
-    '{id:$id,label:$label,current:$current,latest:$latest,severity:$severity,action:$action,cursorCommand:$cursorCommand,moreInfoUrl:$moreInfoUrl}')
-  FINDINGS=$(echo "$FINDINGS" | jq --argjson f "$FIND" '. + [$f]')
+  AUTO_PR_NOTES="${AUTO_PR_NOTES}- **Node.js LTS**: ${NODE_CURRENT} → ${NODE_LATEST} — auto-PR created\n"
 fi
-
 if [ "${GITLEAKS_OUTDATED:-false}" = "true" ]; then
-  FIND=$(jq -n \
-    --arg id "gitleaks" \
-    --arg label "gitleaks" \
-    --arg current "${GITLEAKS_CURRENT}" \
-    --arg latest "${GITLEAKS_LATEST}" \
-    --arg severity "${GITLEAKS_SEVERITY}" \
-    --arg action "Update the gitleaks Docker image tag in .github/workflows/ci.yml from ${GITLEAKS_CURRENT} to ${GITLEAKS_LATEST}." \
-    --arg cursorCommand "Update gitleaks image tag in .github/workflows/ci.yml from ${GITLEAKS_CURRENT} to ${GITLEAKS_LATEST}" \
-    --arg moreInfoUrl "https://github.com/gitleaks/gitleaks/releases/tag/${GITLEAKS_LATEST}" \
-    '{id:$id,label:$label,current:$current,latest:$latest,severity:$severity,action:$action,cursorCommand:$cursorCommand,moreInfoUrl:$moreInfoUrl}')
-  FINDINGS=$(echo "$FINDINGS" | jq --argjson f "$FIND" '. + [$f]')
+  AUTO_PR_NOTES="${AUTO_PR_NOTES}- **gitleaks**: ${GITLEAKS_CURRENT} → ${GITLEAKS_LATEST} — auto-PR created\n"
+fi
+if [ "${SEMGREP_OUTDATED:-false}" = "true" ]; then
+  AUTO_PR_NOTES="${AUTO_PR_NOTES}- **Semgrep**: ${SEMGREP_CURRENT} → ${SEMGREP_LATEST} — auto-PR created\n"
 fi
 
 FINDING_COUNT=$(echo "$FINDINGS" | jq 'length')
@@ -70,23 +45,14 @@ DATA_JSON=$(jq -n \
   --argjson findings "$FINDINGS" \
   '{runDate:$runDate,findings:$findings}')
 
-TABLE="| Item | Current | Latest | Severity |
-|------|---------|--------|----------|
-"
-if [ "${ESLINT_OUTDATED:-false}" = "true" ]; then
-  TABLE="${TABLE}| ESLint | \`${ESLINT_CURRENT}\` | \`${ESLINT_LATEST}\` | ${ESLINT_SEVERITY} |
-"
-fi
-if [ "${TSESLINT_OUTDATED:-false}" = "true" ]; then
-  TABLE="${TABLE}| typescript-eslint | \`${TSESLINT_CURRENT}\` | \`${TSESLINT_LATEST}\` | ${TSESLINT_SEVERITY} |
-"
-fi
-if [ "${NODE_OUTDATED:-false}" = "true" ]; then
-  TABLE="${TABLE}| Node.js LTS | \`${NODE_CURRENT}\` | \`${NODE_LATEST}\` | ${NODE_SEVERITY} |
-"
-fi
-if [ "${GITLEAKS_OUTDATED:-false}" = "true" ]; then
-  TABLE="${TABLE}| gitleaks | \`${GITLEAKS_CURRENT}\` | \`${GITLEAKS_LATEST}\` | ${GITLEAKS_SEVERITY} |
+# Build auto-PR section for the issue body
+AUTO_PR_SECTION=""
+if [ -n "$AUTO_PR_NOTES" ]; then
+  AUTO_PR_SECTION="## Auto-PRs created this run
+
+The following items were auto-fixed via pull request — review and merge them:
+
+$(echo -e "$AUTO_PR_NOTES")
 "
 fi
 
@@ -97,18 +63,47 @@ ISSUE_BODY=$(cat <<EOF
 $DATA_JSON
 -->
 
-$TABLE
-**Cursor changelog** (manual review): https://cursor.com/changelog
+${AUTO_PR_SECTION}## Human-decision findings
 
-To adopt: open [playbook.html](https://github.com/$REPO/blob/main/playbook.html) → Updates section, or run \`/guardrail-upgrade\` in Cursor.
+$(if [ "$FINDING_COUNT" = "0" ]; then echo "No human-decision findings this week."; fi)
+$(if [ "${CURSOR_NEW_RELEASE:-false}" = "true" ]; then echo "| Item | Current | Latest | Action |
+|------|---------|--------|--------|
+| Cursor IDE | \`${CURSOR_CURRENT}\` | \`${CURSOR_LATEST}\` | Review changelog |"; fi)
+
+**npm packages** are managed by Dependabot — check open Dependabot PRs separately.
+
+Open [playbook.html](https://github.com/$REPO/blob/main/playbook.html) → Updates section for the interactive view.
 
 _Opened automatically by the weekly-guardrail-review workflow._
 EOF
 )
 
 if [ "${DRY_RUN:-false}" = "true" ]; then
-  echo "=== DRY RUN: $FINDING_COUNT finding(s) ==="
+  echo "=== DRY RUN: $FINDING_COUNT human-decision finding(s) ==="
   echo "$ISSUE_BODY"
+  exit 0
+fi
+
+# Only open/update an issue if there are human-decision findings OR auto-PR notes.
+HAS_CONTENT=false
+[ "$FINDING_COUNT" != "0" ] && HAS_CONTENT=true
+[ -n "$AUTO_PR_NOTES" ] && HAS_CONTENT=true
+
+if [ "$HAS_CONTENT" = "false" ]; then
+  echo "Nothing to report this week."
+  # Close any existing open issue since everything is current.
+  EXISTING=$(gh issue list \
+    --repo "$REPO" \
+    --label "guardrail-review" \
+    --state open \
+    --limit 1 \
+    --json number \
+    --jq '.[0].number // empty')
+  if [ -n "$EXISTING" ]; then
+    gh issue comment "$EXISTING" --repo "$REPO" --body "Weekly review on $DATE: all tools current, no findings. Closing."
+    gh issue close "$EXISTING" --repo "$REPO"
+    echo "Closed existing issue #$EXISTING — all clear."
+  fi
   exit 0
 fi
 
@@ -122,14 +117,7 @@ EXISTING=$(gh issue list \
   --json number,title \
   --jq '.[0].number // empty')
 
-if [ "$FINDING_COUNT" = "0" ]; then
-  echo "No findings this week."
-  if [ -n "$EXISTING" ]; then
-    gh issue comment "$EXISTING" --repo "$REPO" --body "Weekly review on $DATE found no new findings. Closing as all clear."
-    gh issue close "$EXISTING" --repo "$REPO"
-    echo "Closed existing issue #$EXISTING — all clear."
-  fi
-elif [ -n "$EXISTING" ]; then
+if [ -n "$EXISTING" ]; then
   COMMENT_BODY=$(cat <<EOF
 Updated findings from $DATE run:
 
@@ -137,7 +125,7 @@ Updated findings from $DATE run:
 $DATA_JSON
 -->
 
-$TABLE
+${AUTO_PR_SECTION}
 _Updated by weekly-guardrail-review workflow._
 EOF
 )

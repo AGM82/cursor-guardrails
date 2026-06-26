@@ -1,0 +1,143 @@
+name: Bi-weekly AI review
+
+on:
+  schedule:
+    # Every other Monday at 08:00 UTC (weeks 1, 3 of each month).
+    - cron: '0 8 1-7 * 1'    # First Monday of the month — full bi-weekly review
+    - cron: '0 8 15-21 * 1'  # Third Monday of the month — full bi-weekly review
+    # First Monday of each quarter at 09:00 UTC — security deep-dive.
+    - cron: '0 9 1-7 1,4,7,10 1'
+  workflow_dispatch:
+    inputs:
+      review_type:
+        description: 'Review type'
+        required: false
+        default: 'biweekly'
+        type: choice
+        options:
+          - biweekly
+          - cursor
+          - security
+      dry_run:
+        description: 'Dry run — skip API call, use mock data'
+        required: false
+        default: 'false'
+        type: boolean
+
+permissions:
+  issues: write
+
+concurrency:
+  group: bi-weekly-ai-review
+  cancel-in-progress: false
+
+jobs:
+  ai-review:
+    name: AI pattern review (${{ inputs.review_type || 'biweekly' }})
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Run AI review
+        id: ai_review
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          REVIEW_TYPE: ${{ inputs.review_type || 'biweekly' }}
+          DRY_RUN: ${{ inputs.dry_run || 'false' }}
+        run: |
+          node .github/scripts/ai-review.mjs > ai-suggestions.json
+          echo "suggestion_count=$(node -e "const d=require('./ai-suggestions.json'); console.log(d.suggestions.length)")" >> $GITHUB_OUTPUT
+          echo "run_date=$(node -e "const d=require('./ai-suggestions.json'); console.log(d.runDate)")" >> $GITHUB_OUTPUT
+          echo "review_type=$(node -e "const d=require('./ai-suggestions.json'); console.log(d.reviewType)")" >> $GITHUB_OUTPUT
+
+      - name: Build issue body and manage issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DRY_RUN: ${{ inputs.dry_run || 'false' }}
+        run: |
+          COUNT="${{ steps.ai_review.outputs.suggestion_count }}"
+          RUN_DATE="${{ steps.ai_review.outputs.run_date }}"
+          REVIEW_TYPE="${{ steps.ai_review.outputs.review_type }}"
+
+          # Build markdown table from suggestions
+          TABLE=$(node -e "
+            const d = require('./ai-suggestions.json');
+            const rows = d.suggestions.map(s =>
+              '| ' + [s.area, s.title, s.confidence, s.stability, s.effort].join(' | ') + ' |'
+            ).join('\n');
+            console.log('| Area | Title | Confidence | Stability | Effort |\n|------|-------|------------|-----------|--------|\n' + rows);
+          ")
+
+          WATCHLIST=$(node -e "
+            const d = require('./ai-suggestions.json');
+            if (!d.watchlist || !d.watchlist.length) { console.log('_No watchlist items._'); return; }
+            const rows = d.watchlist.map(s => '- **' + s.title + '** (' + s.area + ') — ' + s.reason).join('\n');
+            console.log(rows);
+          ")
+
+          # Embed machine-readable data for playbook.html
+          DATA_JSON=$(cat ai-suggestions.json)
+
+          ISSUE_BODY="## AI guardrail review — ${RUN_DATE} (${REVIEW_TYPE})
+
+          <!-- ai-review-data
+          ${DATA_JSON}
+          -->
+
+          ## Actionable suggestions (${COUNT})
+
+          ${TABLE}
+
+          ## Watchlist — low-confidence signals to monitor
+
+          ${WATCHLIST}
+
+          ---
+          Open [playbook.html](https://github.com/${GITHUB_REPOSITORY}/blob/main/playbook.html) → AI Suggestions tab for the interactive view.
+
+          _Generated automatically by the bi-weekly-ai-review workflow using Anthropic claude-sonnet-4-5._"
+
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "=== DRY RUN: ${COUNT} suggestion(s) ==="
+            echo "$ISSUE_BODY"
+            exit 0
+          fi
+
+          LABEL="ai-suggestions"
+          TITLE_PREFIX="[ai-review]"
+
+          EXISTING=$(gh issue list \
+            --repo "$GITHUB_REPOSITORY" \
+            --label "$LABEL" \
+            --state open \
+            --limit 1 \
+            --json number \
+            --jq '.[0].number // empty')
+
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" \
+              --repo "$GITHUB_REPOSITORY" \
+              --body "$ISSUE_BODY"
+            echo "Updated existing issue #$EXISTING"
+          else
+            gh issue create \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "${TITLE_PREFIX} ${REVIEW_TYPE} review — ${RUN_DATE}" \
+              --body "$ISSUE_BODY" \
+              --label "$LABEL"
+            echo "Created new ai-suggestions issue"
+          fi
+
+      - name: Summary
+        run: |
+          echo "### AI review complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Run date: ${{ steps.ai_review.outputs.run_date }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Review type: ${{ steps.ai_review.outputs.review_type }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Actionable suggestions: ${{ steps.ai_review.outputs.suggestion_count }}" >> $GITHUB_STEP_SUMMARY
