@@ -268,14 +268,31 @@ _Auto-created by weekly-guardrail-review workflow._" \
         run: bash .github/scripts/weekly-guardrail-review-manage-issue.sh
 
       - name: Summary
+        env:
+          NODE_CURRENT: ${{ steps.check_node.outputs.current }}
+          NODE_LATEST: ${{ steps.check_node.outputs.latest }}
+          NODE_OUTDATED: ${{ steps.check_node.outputs.outdated }}
+          GITLEAKS_CURRENT: ${{ steps.check_gitleaks.outputs.current }}
+          GITLEAKS_LATEST: ${{ steps.check_gitleaks.outputs.latest }}
+          GITLEAKS_OUTDATED: ${{ steps.check_gitleaks.outputs.outdated }}
+          SEMGREP_CURRENT: ${{ steps.check_semgrep.outputs.current }}
+          SEMGREP_LATEST: ${{ steps.check_semgrep.outputs.latest }}
+          SEMGREP_OUTDATED: ${{ steps.check_semgrep.outputs.outdated }}
+          CURSOR_CURRENT: ${{ steps.check_cursor.outputs.current }}
+          CURSOR_LATEST: ${{ steps.check_cursor.outputs.latest }}
+          CURSOR_NEW: ${{ steps.check_cursor.outputs.new_release }}
         run: |
+          node_action() { [ "$NODE_OUTDATED" = "true" ] && echo "Auto-PR created" || echo "Current"; }
+          gl_action()   { [ "$GITLEAKS_OUTDATED" = "true" ] && echo "Auto-PR created" || echo "Current"; }
+          sg_action()   { [ "$SEMGREP_OUTDATED" = "true" ] && echo "Auto-PR created" || echo "Current"; }
+          cu_action()   { [ "$CURSOR_NEW" = "true" ] && echo "Review changelog" || echo "Current"; }
           echo "### Weekly guardrail review complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Run date: $(date -u +%Y-%m-%d)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Check | Current | Latest | Action |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|---------|--------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Node.js LTS | ${{ steps.check_node.outputs.current }} | ${{ steps.check_node.outputs.latest }} | ${{ steps.check_node.outputs.outdated == 'true' && 'Auto-PR created' || 'Current' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| gitleaks | ${{ steps.check_gitleaks.outputs.current }} | ${{ steps.check_gitleaks.outputs.latest }} | ${{ steps.check_gitleaks.outputs.outdated == 'true' && 'Auto-PR created' || 'Current' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Semgrep | ${{ steps.check_semgrep.outputs.current }} | ${{ steps.check_semgrep.outputs.latest }} | ${{ steps.check_semgrep.outputs.outdated == 'true' && 'Auto-PR created' || 'Current' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Cursor | ${{ steps.check_cursor.outputs.current }} | ${{ steps.check_cursor.outputs.latest }} | ${{ steps.check_cursor.outputs.new_release == 'true' && 'Review changelog' || 'Current' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Node.js LTS | ${NODE_CURRENT} | ${NODE_LATEST} | $(node_action) |" >> $GITHUB_STEP_SUMMARY
+          echo "| gitleaks | ${GITLEAKS_CURRENT} | ${GITLEAKS_LATEST} | $(gl_action) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Semgrep | ${SEMGREP_CURRENT} | ${SEMGREP_LATEST} | $(sg_action) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Cursor | ${CURSOR_CURRENT} | ${CURSOR_LATEST} | $(cu_action) |" >> $GITHUB_STEP_SUMMARY
