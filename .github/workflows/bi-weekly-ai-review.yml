@@ -67,10 +67,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           DRY_RUN: ${{ inputs.dry_run || 'false' }}
+          SUGGESTION_COUNT: ${{ steps.ai_review.outputs.suggestion_count }}
+          RUN_DATE: ${{ steps.ai_review.outputs.run_date }}
+          REVIEW_TYPE: ${{ steps.ai_review.outputs.review_type }}
+          FOCUS_TOPIC: ${{ inputs.focus_topic || '' }}
         run: |
-          COUNT="${{ steps.ai_review.outputs.suggestion_count }}"
-          RUN_DATE="${{ steps.ai_review.outputs.run_date }}"
-          REVIEW_TYPE="${{ steps.ai_review.outputs.review_type }}"
+          COUNT="$SUGGESTION_COUNT"
 
           # Build markdown table from suggestions (fields escaped to prevent markdown/injection issues)
           TABLE=$(node -e "
@@ -119,7 +121,6 @@ jobs:
           fi
 
           LABEL="ai-suggestions"
-          FOCUS_TOPIC="${{ inputs.focus_topic }}"
 
           if [ -n "$FOCUS_TOPIC" ] && [ "$REVIEW_TYPE" = "focused" ]; then
             TITLE_SUFFIX="investigation: ${FOCUS_TOPIC} — ${RUN_DATE}"
@@ -156,9 +157,13 @@ jobs:
           fi
 
       - name: Summary
+        env:
+          SUMMARY_DATE: ${{ steps.ai_review.outputs.run_date }}
+          SUMMARY_TYPE: ${{ steps.ai_review.outputs.review_type }}
+          SUMMARY_COUNT: ${{ steps.ai_review.outputs.suggestion_count }}
         run: |
           echo "### AI review complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- Run date: ${{ steps.ai_review.outputs.run_date }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Review type: ${{ steps.ai_review.outputs.review_type }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Actionable suggestions: ${{ steps.ai_review.outputs.suggestion_count }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Run date: ${SUMMARY_DATE}" >> $GITHUB_STEP_SUMMARY
+          echo "- Review type: ${SUMMARY_TYPE}" >> $GITHUB_STEP_SUMMARY
+          echo "- Actionable suggestions: ${SUMMARY_COUNT}" >> $GITHUB_STEP_SUMMARY
