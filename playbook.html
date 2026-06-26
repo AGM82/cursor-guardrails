@@ -219,6 +219,9 @@
     <span class="nav-dot"></span> Projects
   </a>
   <div class="nav-section-label">Tools</div>
+  <a class="nav-item" onclick="showSection('research', this)">
+    <span class="nav-dot"></span> Research
+  </a>
   <a class="nav-item" onclick="showSection('health', this)">
     <span class="nav-dot"></span> Health Check
   </a>
@@ -429,7 +432,67 @@ Write-Host "Commands bootstrapped. Now type /guardrail-upgrade in Cursor chat."<
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════
-     SECTION 4: HEALTH CHECK
+     SECTION 4: RESEARCH
+═══════════════════════════════════════════════════════════ -->
+<div id="section-research" class="section">
+  <div class="section-header">
+    <div class="section-title">Research</div>
+    <div class="section-desc">Trigger an on-demand AI investigation into any tool or topic. Results appear in the AI Suggestions tab once the workflow completes.</div>
+  </div>
+
+  <!-- PAT setup -->
+  <div class="card" style="margin-bottom:20px;">
+    <h3 style="margin:0 0 10px; font-size:14px; color:var(--text);">GitHub access token</h3>
+    <p style="font-size:12px; color:var(--text2); margin-bottom:12px; line-height:1.6;">
+      A personal access token (PAT) with <code>workflow</code> scope is required to trigger investigations from this UI.
+      It is stored only in your browser's localStorage — never sent anywhere except GitHub's API.
+      <a href="https://github.com/settings/tokens/new?scopes=workflow&description=cursor-guardrails+playbook" target="_blank" style="color:var(--accent);">Generate one here →</a>
+    </p>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <input type="password" id="github-pat" placeholder="ghp_••••••••••••••••••••••••••••••••••••••"
+        style="flex:1; background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:8px 12px; color:var(--text); font-size:13px; font-family:monospace;"
+        oninput="savePat(this.value)" />
+      <span id="pat-status" style="font-size:12px; color:var(--text3);">Not set</span>
+    </div>
+  </div>
+
+  <!-- Investigation form -->
+  <div class="card" style="margin-bottom:20px;">
+    <h3 style="margin:0 0 10px; font-size:14px; color:var(--text);">Investigate a tool or topic</h3>
+    <p style="font-size:12px; color:var(--text2); margin-bottom:14px; line-height:1.6;">
+      Enter any tool, framework, or technology. The AI will apply the <strong>50-ai-tooling.mdc</strong>
+      evaluation framework and return a structured verdict: <strong>Add / Watch / Reject</strong> — with evidence, not vendor claims.
+    </p>
+    <div style="display:flex; gap:8px; margin-bottom:10px;">
+      <input type="text" id="research-topic" placeholder="e.g. Windsurf IDE, shadcn/ui, Zed editor, Deno 2…"
+        style="flex:1; background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:8px 12px; color:var(--text); font-size:13px;"
+        onkeydown="if(event.key==='Enter') runInvestigation()" />
+      <button class="btn btn-primary" onclick="runInvestigation()" id="research-run-btn">Run investigation</button>
+    </div>
+
+    <!-- Quick-pick suggestions -->
+    <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px;">
+      <span style="font-size:11px; color:var(--text3); padding-top:2px;">Quick picks:</span>
+      <button class="btn" style="font-size:11px; padding:3px 10px;" onclick="setResearchTopic('Windsurf IDE')">Windsurf IDE</button>
+      <button class="btn" style="font-size:11px; padding:3px 10px;" onclick="setResearchTopic('Zed editor')">Zed editor</button>
+      <button class="btn" style="font-size:11px; padding:3px 10px;" onclick="setResearchTopic('Cline (AI coding agent)')">Cline</button>
+      <button class="btn" style="font-size:11px; padding:3px 10px;" onclick="setResearchTopic('Biome (ESLint alternative)')">Biome</button>
+      <button class="btn" style="font-size:11px; padding:3px 10px;" onclick="setResearchTopic('Bun runtime')">Bun</button>
+      <button class="btn" style="font-size:11px; padding:3px 10px;" onclick="setResearchTopic('shadcn/ui')">shadcn/ui</button>
+    </div>
+
+    <div id="research-status" style="display:none; padding:12px; background:var(--surface2); border-radius:6px; font-size:13px;"></div>
+  </div>
+
+  <!-- Recent investigations -->
+  <div class="card">
+    <h3 style="margin:0 0 10px; font-size:14px; color:var(--text);">Recent investigations</h3>
+    <div id="research-history" style="font-size:12px; color:var(--text2);"><em>No investigations run yet.</em></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION 5: HEALTH CHECK
 ═══════════════════════════════════════════════════════════ -->
 <div id="section-health" class="section">
   <div class="section-header">
@@ -502,6 +565,7 @@ function showSection(id, el) {
   if (el) el.classList.add('active');
   if (id === 'updates') loadUpdates();
   if (id === 'projects') renderProjects();
+  if (id === 'research') initResearch();
 }
 
 function showUpdatesTab(tabId, el) {
@@ -746,6 +810,192 @@ function dismissAiSuggestion(id, runDate) {
   localStorage.setItem('dismissedAiSuggestions', JSON.stringify(dis));
   const card = document.getElementById('ai-card-' + id);
   if (card) { card.style.opacity='0'; card.style.transition='opacity 0.3s'; setTimeout(()=>card.remove(), 300); }
+}
+
+// ─── Research panel ───────────────────────────────────────────────────────────
+
+const WORKFLOW_FILENAME = 'bi-weekly-ai-review.yml';
+const RESEARCH_HISTORY_KEY = 'researchHistory';
+
+function savePat(value) {
+  localStorage.setItem('githubPat', value.trim());
+  updatePatStatus();
+}
+
+function updatePatStatus() {
+  const pat = localStorage.getItem('githubPat') || '';
+  const el = document.getElementById('pat-status');
+  if (!el) return;
+  if (pat.startsWith('ghp_') || pat.startsWith('github_pat_')) {
+    el.textContent = '✓ Set';
+    el.style.color = 'var(--green)';
+  } else if (pat.length > 0) {
+    el.textContent = '⚠ Unrecognised format';
+    el.style.color = 'var(--yellow)';
+  } else {
+    el.textContent = 'Not set';
+    el.style.color = 'var(--text3)';
+  }
+}
+
+function initResearch() {
+  const pat = localStorage.getItem('githubPat') || '';
+  const patInput = document.getElementById('github-pat');
+  if (patInput && pat) patInput.value = pat;
+  updatePatStatus();
+  renderResearchHistory();
+}
+
+function setResearchTopic(topic) {
+  const input = document.getElementById('research-topic');
+  if (input) { input.value = topic; input.focus(); }
+}
+
+function setResearchStatus(msg, type) {
+  const el = document.getElementById('research-status');
+  if (!el) return;
+  el.style.display = 'block';
+  const colours = { info: 'var(--accent)', success: 'var(--green)', error: 'var(--red)', running: 'var(--yellow)' };
+  el.style.color = colours[type] || 'var(--text2)';
+  el.innerHTML = msg;
+}
+
+async function runInvestigation() {
+  const topic = (document.getElementById('research-topic')?.value || '').trim();
+  if (!topic) { setResearchStatus('Enter a tool or topic to investigate.', 'error'); return; }
+
+  const pat = localStorage.getItem('githubPat') || '';
+  if (!pat) { setResearchStatus('Set your GitHub PAT first (workflow scope required).', 'error'); return; }
+
+  const btn = document.getElementById('research-run-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Starting…'; }
+
+  setResearchStatus(`<span style="animation:spin 1s linear infinite; display:inline-block;">⟳</span> Triggering investigation for <strong>${topic}</strong>…`, 'running');
+
+  try {
+    // Trigger the workflow via GitHub API.
+    const triggerRes = await fetch(
+      `https://api.github.com/repos/${REPO}/actions/workflows/${WORKFLOW_FILENAME}/dispatches`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${pat}`,
+          'Accept': 'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ref: 'main',
+          inputs: {
+            review_type: 'focused',
+            focus_topic: topic,
+            dry_run: 'false',
+          },
+        }),
+      }
+    );
+
+    if (!triggerRes.ok) {
+      const err = await triggerRes.json().catch(() => ({}));
+      throw new Error(err.message || `GitHub API returned ${triggerRes.status}`);
+    }
+
+    // Save to history.
+    const history = JSON.parse(localStorage.getItem(RESEARCH_HISTORY_KEY) || '[]');
+    const entry = { topic, triggeredAt: new Date().toISOString(), status: 'running', runUrl: null };
+    history.unshift(entry);
+    localStorage.setItem(RESEARCH_HISTORY_KEY, JSON.stringify(history.slice(0, 20)));
+    renderResearchHistory();
+
+    setResearchStatus(
+      `✓ Investigation started for <strong>${topic}</strong>. ` +
+      `<a href="https://github.com/${REPO}/actions/workflows/${WORKFLOW_FILENAME}" target="_blank" style="color:var(--accent);">Monitor on GitHub →</a><br>` +
+      `<span style="font-size:11px; color:var(--text3); margin-top:6px; display:block;">Results will appear in the AI Suggestions tab once the workflow completes (~2–3 minutes).</span>`,
+      'success'
+    );
+
+    // Poll for completion and update history.
+    pollForCompletion(topic, entry.triggeredAt);
+
+  } catch (e) {
+    setResearchStatus(`Error: ${e.message}.<br><span style="font-size:11px;">Check your PAT has the <code>workflow</code> scope.</span>`, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Run investigation'; }
+  }
+}
+
+async function pollForCompletion(topic, triggeredAt) {
+  const pat = localStorage.getItem('githubPat') || '';
+  const startTime = new Date(triggeredAt).getTime();
+  const maxWait = 10 * 60 * 1000; // 10 minutes
+  const interval = 15 * 1000; // poll every 15s
+
+  for (let elapsed = 0; elapsed < maxWait; elapsed += interval) {
+    await new Promise(r => setTimeout(r, interval));
+
+    try {
+      const runsRes = await fetch(
+        `https://api.github.com/repos/${REPO}/actions/workflows/${WORKFLOW_FILENAME}/runs?per_page=5&event=workflow_dispatch`,
+        { headers: { 'Authorization': `Bearer ${pat}`, 'Accept': 'application/vnd.github+json' } }
+      );
+      const runs = (await runsRes.json()).workflow_runs || [];
+      // Find a run that started after we triggered (within a 2-min window).
+      const run = runs.find(r => {
+        const created = new Date(r.created_at).getTime();
+        return created >= startTime - 5000 && created <= startTime + 120000;
+      });
+
+      if (!run) continue;
+
+      if (run.status === 'completed') {
+        const history = JSON.parse(localStorage.getItem(RESEARCH_HISTORY_KEY) || '[]');
+        const entry = history.find(h => h.topic === topic && h.triggeredAt === triggeredAt);
+        if (entry) {
+          entry.status = run.conclusion === 'success' ? 'done' : 'failed';
+          entry.runUrl = run.html_url;
+          localStorage.setItem(RESEARCH_HISTORY_KEY, JSON.stringify(history));
+        }
+        renderResearchHistory();
+
+        if (run.conclusion === 'success') {
+          setResearchStatus(
+            `✅ Investigation complete for <strong>${topic}</strong>. ` +
+            `<a href="https://github.com/${REPO}/issues?q=is:issue+is:open+label:ai-suggestions" target="_blank" style="color:var(--accent);">View result in AI Suggestions →</a>`,
+            'success'
+          );
+          // Auto-refresh AI Suggestions so the new issue appears.
+          aiSuggestionsLoaded = false;
+        } else {
+          setResearchStatus(`Investigation failed. <a href="${run.html_url}" target="_blank">View run logs →</a>`, 'error');
+        }
+        return;
+      }
+    } catch { /* ignore polling errors */ }
+  }
+}
+
+function renderResearchHistory() {
+  const el = document.getElementById('research-history');
+  if (!el) return;
+  const history = JSON.parse(localStorage.getItem(RESEARCH_HISTORY_KEY) || '[]');
+  if (!history.length) { el.innerHTML = '<em>No investigations run yet.</em>'; return; }
+
+  const STATUS_ICON = { running: '⟳', done: '✅', failed: '❌' };
+  const STATUS_COLOUR = { running: 'var(--yellow)', done: 'var(--green)', failed: 'var(--red)' };
+
+  el.innerHTML = history.map(h => {
+    const when = new Date(h.triggeredAt).toLocaleString();
+    const icon = STATUS_ICON[h.status] || '⟳';
+    const colour = STATUS_COLOUR[h.status] || 'var(--yellow)';
+    const link = h.runUrl ? ` — <a href="${h.runUrl}" target="_blank" style="color:var(--accent);">view run</a>` : '';
+    return `<div style="padding:8px 0; border-bottom:1px solid var(--border); display:flex; gap:10px; align-items:baseline;">
+      <span style="color:${colour}; font-size:14px;">${icon}</span>
+      <div>
+        <strong style="color:var(--text);">${h.topic}</strong>
+        <span style="color:var(--text3); font-size:11px; margin-left:8px;">${when}${link}</span>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 // ─── Projects registry ────────────────────────────────────────────────────────

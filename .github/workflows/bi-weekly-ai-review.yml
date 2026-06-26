@@ -18,6 +18,12 @@ on:
           - biweekly
           - cursor
           - security
+          - focused
+      focus_topic:
+        description: 'Tool or topic to investigate (used when review_type=focused)'
+        required: false
+        default: ''
+        type: string
       dry_run:
         description: 'Dry run — skip API call, use mock data'
         required: false
@@ -49,6 +55,7 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           REVIEW_TYPE: ${{ inputs.review_type || 'biweekly' }}
+          FOCUS_TOPIC: ${{ inputs.focus_topic || '' }}
           DRY_RUN: ${{ inputs.dry_run || 'false' }}
         run: |
           node .github/scripts/ai-review.mjs > ai-suggestions.json
@@ -110,28 +117,40 @@ jobs:
           fi
 
           LABEL="ai-suggestions"
-          TITLE_PREFIX="[ai-review]"
+          FOCUS_TOPIC="${{ inputs.focus_topic }}"
 
-          EXISTING=$(gh issue list \
-            --repo "$GITHUB_REPOSITORY" \
-            --label "$LABEL" \
-            --state open \
-            --limit 1 \
-            --json number \
-            --jq '.[0].number // empty')
-
-          if [ -n "$EXISTING" ]; then
-            gh issue comment "$EXISTING" \
-              --repo "$GITHUB_REPOSITORY" \
-              --body "$ISSUE_BODY"
-            echo "Updated existing issue #$EXISTING"
-          else
+          if [ -n "$FOCUS_TOPIC" ] && [ "$REVIEW_TYPE" = "focused" ]; then
+            TITLE_SUFFIX="investigation: ${FOCUS_TOPIC} — ${RUN_DATE}"
+            # Focused runs always open a new issue (not appended to the rolling one).
             gh issue create \
               --repo "$GITHUB_REPOSITORY" \
-              --title "${TITLE_PREFIX} ${REVIEW_TYPE} review — ${RUN_DATE}" \
+              --title "[ai-review] ${TITLE_SUFFIX}" \
               --body "$ISSUE_BODY" \
               --label "$LABEL"
-            echo "Created new ai-suggestions issue"
+            echo "Created focused investigation issue for: ${FOCUS_TOPIC}"
+          else
+            TITLE_PREFIX="[ai-review]"
+            EXISTING=$(gh issue list \
+              --repo "$GITHUB_REPOSITORY" \
+              --label "$LABEL" \
+              --state open \
+              --limit 1 \
+              --json number \
+              --jq '.[0].number // empty')
+
+            if [ -n "$EXISTING" ]; then
+              gh issue comment "$EXISTING" \
+                --repo "$GITHUB_REPOSITORY" \
+                --body "$ISSUE_BODY"
+              echo "Updated existing issue #$EXISTING"
+            else
+              gh issue create \
+                --repo "$GITHUB_REPOSITORY" \
+                --title "${TITLE_PREFIX} ${REVIEW_TYPE} review — ${RUN_DATE}" \
+                --body "$ISSUE_BODY" \
+                --label "$LABEL"
+              echo "Created new ai-suggestions issue"
+            fi
           fi
 
       - name: Summary

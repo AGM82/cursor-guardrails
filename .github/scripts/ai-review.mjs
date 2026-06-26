@@ -19,9 +19,10 @@ import { execSync } from 'child_process';
 
 const API_KEY = process.env.ANTHROPIC_API_KEY;
 const REVIEW_TYPE = process.env.REVIEW_TYPE || 'biweekly';
+const FOCUS_TOPIC = (process.env.FOCUS_TOPIC || '').trim();
 const DRY_RUN = process.env.DRY_RUN === 'true';
 const MODEL = 'claude-sonnet-4-5';
-const MAX_TOKENS = 2048;
+const MAX_TOKENS = 4096;
 
 // ── Read key repo files (compact summaries, not full contents) ──────────────
 
@@ -94,6 +95,44 @@ ${commands}`;
 }
 
 // ── Topic definitions per review type ──────────────────────────────────────
+
+// buildFocusedTopics generates a two-call deep-dive for a specific tool/topic.
+function buildFocusedTopics(topic) {
+  return [
+    {
+      id: 'focused-verdict',
+      label: `Focused: ${topic}`,
+      question: `You are evaluating whether "${topic}" should be adopted, watched, or ignored in the cursor-guardrails development stack.
+
+Apply the evaluation framework from rule 50-ai-tooling.mdc (described in the repo context).
+
+Answer these questions in your JSON response:
+1. What is "${topic}"? What problem does it solve and who makes it?
+2. Is this an **Addition** (fills a gap not covered by current stack) or a **Replacement** candidate (competes with an existing tool)?
+3. For Additions: does it pass the five Addition criteria (genuine gap, low friction, sustainable project, independent evidence, no redundant category)?
+4. For Replacements: does it meet the 10× improvement in ≥2 dimensions standard? What is the switching cost over 12 months?
+5. What is the independent evidence (engineering blogs, benchmarks, peer usage) — not vendor claims?
+6. Are there any rejection criteria (data privacy risks, no data policy, untrusted third party)?
+7. **Verdict**: Add / Watch / Reject — and the one-sentence reason.
+
+Be direct and specific. If the evidence is thin, say so.`,
+    },
+    {
+      id: 'focused-impact',
+      label: `Impact: ${topic}`,
+      question: `Assuming "${topic}" passes the evaluation (see previous call), what specifically should change in the cursor-guardrails template?
+
+For each change:
+- Which file changes? (.cursor/rules/*.mdc, AGENTS.md, .github/workflows/*, playbook.html, etc.)
+- What is the exact change? (new rule, updated tool table entry, new workflow, etc.)
+- What is the effort level? (low = <1 hour, medium = half day, high = full day+)
+
+If the verdict is Watch or Reject, list what signals would change the verdict (what evidence would need to emerge to revisit this).
+
+Be concrete. Reference specific files and rule IDs where possible.`,
+    },
+  ];
+}
 
 const TOPICS = {
   biweekly: [
@@ -358,7 +397,18 @@ async function main() {
     process.exit(1);
   }
 
-  const topics = TOPICS[REVIEW_TYPE] || TOPICS.biweekly;
+  let topics;
+  if (REVIEW_TYPE === 'focused') {
+    if (!FOCUS_TOPIC) {
+      process.stderr.write('[ai-review] REVIEW_TYPE=focused requires FOCUS_TOPIC to be set\n');
+      process.exit(1);
+    }
+    topics = buildFocusedTopics(FOCUS_TOPIC);
+    process.stderr.write(`[ai-review] Focused investigation: "${FOCUS_TOPIC}"\n`);
+  } else {
+    topics = TOPICS[REVIEW_TYPE] || TOPICS.biweekly;
+  }
+
   const context = buildContext();
   const watchlist = loadWatchlist();
 
@@ -442,6 +492,7 @@ ${context}`;
   const output = {
     runDate,
     reviewType: REVIEW_TYPE,
+    ...(FOCUS_TOPIC ? { focusTopic: FOCUS_TOPIC } : {}),
     suggestions: actionable,
     watchlist: watchlistItems,
     updatedWatchlist,
