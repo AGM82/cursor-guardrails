@@ -197,6 +197,30 @@
   .section-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 
   .changelog-section { margin-top: 32px; }
+
+  /* Updates UX additions */
+  .detail-panel { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0; margin-top: 10px; display: none; overflow: hidden; }
+  .detail-panel.open { display: block; }
+  .detail-panel-content { padding: 14px 16px; font-size: 13px; color: var(--text2); line-height: 1.7; }
+  .detail-panel-content p { margin-bottom: 8px; }
+  .detail-link { display: inline-flex; align-items: center; gap: 4px; margin-top: 8px; font-size: 12px; font-weight: 600; color: var(--accent); }
+  .detail-link:hover { color: var(--accent-hover); }
+  .btn-done { background: rgba(34,197,94,0.2); color: var(--green); border: 1px solid rgba(34,197,94,0.4); font-size: 12px; font-weight: 600; padding: 7px 14px; border-radius: var(--radius-sm); cursor: pointer; transition: all 0.15s; }
+  .btn-done:hover { background: rgba(34,197,94,0.3); }
+  .done-hint { font-size: 11px; color: var(--text3); margin-left: 10px; }
+  .accept-panel-divider { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+  .declined-section { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 12px; }
+  .declined-toggle { font-size: 12px; color: var(--text3); cursor: pointer; display: inline-flex; align-items: center; gap: 5px; user-select: none; }
+  .declined-toggle:hover { color: var(--text2); }
+  .declined-list { margin-top: 10px; display: none; }
+  .declined-list.open { display: block; }
+  .declined-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: var(--surface2); border-radius: var(--radius-sm); margin-bottom: 6px; opacity: 0.6; }
+  .declined-item-label { font-size: 13px; color: var(--text2); }
+  .btn-undo { background: transparent; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 3px 10px; font-size: 11px; color: var(--text3); cursor: pointer; }
+  .btn-undo:hover { border-color: var(--accent); color: var(--accent); }
+  .refresh-btn { background: transparent; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 4px 10px; font-size: 11px; color: var(--text3); cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+  .refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .next-check-note { font-size: 12px; color: var(--text3); margin-top: 6px; }
 </style>
 </head>
 <body>
@@ -629,11 +653,50 @@ Write-Host "Commands bootstrapped. Now type /guardrail-upgrade in Cursor chat."`
 
 // ─── Updates section ──────────────────────────────────────────────────────────
 let updatesLoaded = false;
+let currentRunDate = null;
 
 async function loadUpdates() {
   if (updatesLoaded) return;
   updatesLoaded = true;
   await Promise.all([loadFindings(), loadChangelog()]);
+}
+
+async function refreshUpdates() {
+  updatesLoaded = false;
+  currentRunDate = null;
+  document.getElementById('updates-content').innerHTML = '<div class="loading"><div class="spinner"></div> Refreshing…</div>';
+  await loadUpdates();
+}
+
+function nextMondayStr() {
+  const d = new Date();
+  const day = d.getDay();
+  const daysUntil = day === 1 ? 7 : (8 - day) % 7;
+  d.setDate(d.getDate() + daysUntil);
+  return d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' });
+}
+
+function getDetailContent(f) {
+  const details = {
+    'eslint': {
+      what: 'ESLint is the JavaScript/TypeScript linter. This project uses ESLint 10 with plugins for security and accessibility.',
+      why: 'Minor updates fix bugs and add new rules. Major updates require checking that eslint-plugin-jsx-a11y and eslint-plugin-security are compatible before accepting — check the KB entry on major ESLint bumps.',
+    },
+    'typescript-eslint': {
+      what: 'typescript-eslint provides TypeScript-aware linting rules, bridging ESLint and the TypeScript compiler.',
+      why: 'Minor updates bring improved type-aware rules and bug fixes. The project pins to <code>^8.62.0</code> to avoid false positives from the weekly workflow — update the range in package.json when accepting.',
+    },
+    'nodejs': {
+      what: 'Node.js LTS is the runtime for all project tooling — build, lint, test, and hooks.',
+      why: 'Staying on LTS ensures security patches and broad tool compatibility. When updating, change <code>.nvmrc</code> and the <code>node-version</code> in <code>.github/workflows/ci.yml</code> to match.',
+    },
+    'gitleaks': {
+      what: 'gitleaks scans commits for secrets and credentials. The CI pipeline uses it as a Docker container — no local install needed.',
+      why: 'New releases include updated detection patterns for emerging secret formats. Update the image tag in <code>.github/workflows/ci.yml</code>.',
+    },
+  };
+  const d = details[f.id] || { what: f.action, why: 'See the GitHub release notes for details.' };
+  return `<p><strong>What it is:</strong> ${d.what}</p><p><strong>Why update:</strong> ${d.why}</p>`;
 }
 
 async function loadFindings() {
@@ -642,7 +705,7 @@ async function loadFindings() {
     const res = await fetch(`${API}/issues?labels=guardrail-review&state=open&per_page=1`);
     const issues = await res.json();
     if (!issues.length) {
-      el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">✅</div><p>No pending updates — all guardrails are current.</p></div>`;
+      el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">✅</div><p>No pending updates — all guardrails are current.</p><p class="next-check-note">Next automated check: <strong>${nextMondayStr()}</strong></p></div>`;
       return;
     }
     const issue = issues[0];
@@ -652,14 +715,23 @@ async function loadFindings() {
       return;
     }
     const data = JSON.parse(match[1].trim());
+    currentRunDate = data.runDate;
+
     const dismissed = JSON.parse(localStorage.getItem('dismissedUpdates') || '{}');
+    const done = JSON.parse(localStorage.getItem('doneUpdates') || '{}');
     const accepted = JSON.parse(localStorage.getItem('acceptedUpdates') || '{}');
 
-    let html = `<div class="update-status-bar"><span>Run date: <strong>${data.runDate}</strong></span><span><a href="https://github.com/${REPO}/issues?labels=guardrail-review" target="_blank">View on GitHub →</a></span></div>`;
+    // Active = not dismissed AND not marked done for this specific runDate
+    const active = data.findings.filter(f => dismissed[f.id] !== data.runDate && done[f.id] !== data.runDate);
+    const declinedFindings = data.findings.filter(f => dismissed[f.id] === data.runDate);
 
-    const active = data.findings.filter(f => !(dismissed[f.id] === data.runDate));
+    let html = `<div class="update-status-bar">
+      <span>Run date: <strong>${data.runDate}</strong> · <a href="${issue.html_url}" target="_blank">Issue #${issue.number} →</a></span>
+      <button class="refresh-btn" onclick="refreshUpdates()">↻ Refresh</button>
+    </div>`;
+
     if (!active.length) {
-      html += `<div class="empty-state"><div class="empty-state-icon">✅</div><p>All findings reviewed for ${data.runDate}.</p></div>`;
+      html += `<div class="empty-state"><div class="empty-state-icon">✅</div><p>All findings reviewed for ${data.runDate}.</p><p class="next-check-note">Next automated check: <strong>${nextMondayStr()}</strong></p></div>`;
     } else {
       active.forEach(f => {
         const isAccepted = accepted[f.id] === data.runDate;
@@ -668,20 +740,46 @@ async function loadFindings() {
             <span class="update-card-name">${f.label}</span>
             <span class="version-arrow">${f.current} → ${f.latest}</span>
             <span class="badge badge-${f.severity}">${f.severity}</span>
-            ${isAccepted ? '<span class="badge badge-safe">✓ Accepted</span>' : ''}
+            ${isAccepted ? '<span class="badge badge-safe" id="badge-inprogress-${f.id}">✓ In progress</span>' : ''}
           </div>
           <div class="update-card-actions">
-            <button class="btn btn-accept" onclick="acceptFinding('${f.id}', '${data.runDate}', this)">Accept</button>
-            <button class="btn btn-info" onclick="window.open('${f.moreInfoUrl}','_blank')">Find out more</button>
+            <button class="btn btn-accept" id="btn-accept-${f.id}" onclick="acceptFinding('${f.id}', '${data.runDate}', this)">${isAccepted ? '✓ View steps' : 'Accept'}</button>
+            <button class="btn btn-info" id="btn-detail-${f.id}" onclick="toggleDetailPanel('${f.id}')">Details ▼</button>
             <button class="btn btn-decline" onclick="declineFinding('${f.id}', '${data.runDate}')">Decline</button>
           </div>
           <div class="accept-panel ${isAccepted ? 'open' : ''}" id="accept-${f.id}">
+            <div class="accept-panel-label">What to do</div>
+            <p style="font-size:12px; color:var(--text2); margin-bottom:12px; line-height:1.6;">${f.action}</p>
             <div class="accept-panel-label">Run this in Cursor Agent chat</div>
             <div class="copy-block"><pre id="cmd-${f.id}">${fillPath(f.cursorCommand || f.action)}</pre><button class="copy-btn" onclick="copyEl('cmd-${f.id}', this)">Copy</button></div>
+            <div class="accept-panel-divider">
+              <button class="btn-done" onclick="doneFinding('${f.id}', '${data.runDate}')">✓ Mark as done</button>
+              <span class="done-hint">Run the command above in Cursor first, then mark done to dismiss this card</span>
+            </div>
+          </div>
+          <div class="detail-panel" id="detail-${f.id}">
+            <div class="detail-panel-content">
+              ${getDetailContent(f)}
+              <a href="${f.moreInfoUrl}" target="_blank" class="detail-link">View release notes on GitHub →</a>
+            </div>
           </div>
         </div>`;
       });
     }
+
+    if (declinedFindings.length) {
+      html += `<div class="declined-section">
+        <span class="declined-toggle" id="declined-toggle" onclick="toggleDeclined()">▶ Show ${declinedFindings.length} declined finding${declinedFindings.length > 1 ? 's' : ''}</span>
+        <div class="declined-list" id="declined-list">
+          ${declinedFindings.map(f => `
+            <div class="declined-item">
+              <span class="declined-item-label">${f.label} <span style="color:var(--text3);font-size:11px;">${f.current} → ${f.latest}</span></span>
+              <button class="btn-undo" onclick="undoDecline('${f.id}', '${data.runDate}')">Undo decline</button>
+            </div>`).join('')}
+        </div>
+      </div>`;
+    }
+
     el.innerHTML = html;
   } catch(e) {
     el.innerHTML = `<div class="card"><p style="color:var(--red)">Could not load updates: ${e.message}. <a href="https://github.com/${REPO}/issues?labels=guardrail-review" target="_blank">Check GitHub Issues directly.</a></p></div>`;
@@ -694,6 +792,30 @@ function acceptFinding(id, runDate, btn) {
   localStorage.setItem('acceptedUpdates', JSON.stringify(acc));
   const panel = document.getElementById('accept-' + id);
   if (panel) panel.classList.add('open');
+  if (btn) btn.textContent = '✓ View steps';
+  const head = document.getElementById('card-' + id)?.querySelector('.update-card-head');
+  if (head && !head.querySelector('.badge-safe')) {
+    const badge = document.createElement('span');
+    badge.className = 'badge badge-safe';
+    badge.textContent = '✓ In progress';
+    head.appendChild(badge);
+  }
+}
+
+function doneFinding(id, runDate) {
+  const done = JSON.parse(localStorage.getItem('doneUpdates') || '{}');
+  done[id] = runDate;
+  localStorage.setItem('doneUpdates', JSON.stringify(done));
+  // Also clear accepted state for this finding so it doesn't persist to next run
+  const acc = JSON.parse(localStorage.getItem('acceptedUpdates') || '{}');
+  delete acc[id];
+  localStorage.setItem('acceptedUpdates', JSON.stringify(acc));
+  const card = document.getElementById('card-' + id);
+  if (card) {
+    card.style.opacity = '0';
+    card.style.transition = 'opacity 0.3s';
+    setTimeout(() => { card.remove(); checkAllReviewed(); }, 300);
+  }
 }
 
 function declineFinding(id, runDate) {
@@ -701,7 +823,46 @@ function declineFinding(id, runDate) {
   dis[id] = runDate;
   localStorage.setItem('dismissedUpdates', JSON.stringify(dis));
   const card = document.getElementById('card-' + id);
-  if (card) { card.style.opacity = '0'; card.style.transition = 'opacity 0.3s'; setTimeout(() => card.remove(), 300); }
+  if (card) {
+    card.style.opacity = '0';
+    card.style.transition = 'opacity 0.3s';
+    setTimeout(() => { card.remove(); checkAllReviewed(); }, 300);
+  }
+}
+
+function undoDecline(id, runDate) {
+  const dis = JSON.parse(localStorage.getItem('dismissedUpdates') || '{}');
+  delete dis[id];
+  localStorage.setItem('dismissedUpdates', JSON.stringify(dis));
+  refreshUpdates();
+}
+
+function toggleDetailPanel(id) {
+  const panel = document.getElementById('detail-' + id);
+  const btn = document.getElementById('btn-detail-' + id);
+  if (!panel) return;
+  panel.classList.toggle('open');
+  if (btn) btn.textContent = panel.classList.contains('open') ? 'Details ▲' : 'Details ▼';
+}
+
+function toggleDeclined() {
+  const list = document.getElementById('declined-list');
+  const toggle = document.getElementById('declined-toggle');
+  if (!list || !toggle) return;
+  list.classList.toggle('open');
+  const open = list.classList.contains('open');
+  toggle.textContent = toggle.textContent.replace(open ? '▶' : '▼', open ? '▼' : '▶');
+}
+
+function checkAllReviewed() {
+  const remaining = document.querySelectorAll('#updates-content .update-card');
+  if (remaining.length > 0) return;
+  const el = document.getElementById('updates-content');
+  const declined = el.querySelector('.declined-section');
+  const statusBar = el.querySelector('.update-status-bar');
+  const emptyHtml = `<div class="empty-state"><div class="empty-state-icon">✅</div><p>All findings reviewed for ${currentRunDate || 'this week'}.</p><p class="next-check-note">Next automated check: <strong>${nextMondayStr()}</strong></p></div>`;
+  if (declined) declined.insertAdjacentHTML('beforebegin', emptyHtml);
+  else if (statusBar) statusBar.insertAdjacentHTML('afterend', emptyHtml);
 }
 
 async function loadChangelog() {
@@ -709,15 +870,29 @@ async function loadChangelog() {
   try {
     const res = await fetch(`${API}/releases?per_page=10`);
     const releases = await res.json();
-    if (!releases.length) { el.innerHTML = '<p>No releases yet.</p>'; return; }
-    el.innerHTML = releases.map(r => `
+    if (Array.isArray(releases) && releases.length) {
+      el.innerHTML = releases.map(r => `
+        <div class="changelog-entry">
+          <span class="changelog-tag">${r.tag_name}</span>
+          <span class="changelog-date">${r.published_at ? r.published_at.slice(0,10) : ''}</span>
+          <div class="changelog-body">${(r.body || 'No release notes.').replace(/\n/g,'<br>').slice(0,500)}${(r.body||'').length > 500 ? '… <a href="'+r.html_url+'" target="_blank">read more</a>' : ''}</div>
+        </div>`).join('');
+      return;
+    }
+    // Fallback to git tags when no GitHub releases exist yet
+    const tagsRes = await fetch(`${API}/tags?per_page=10`);
+    const tags = await tagsRes.json();
+    if (!Array.isArray(tags) || !tags.length) {
+      el.innerHTML = `<p style="color:var(--text3);">No releases yet. <a href="https://github.com/${REPO}/tags" target="_blank">View tags on GitHub →</a></p>`;
+      return;
+    }
+    el.innerHTML = tags.map(t => `
       <div class="changelog-entry">
-        <span class="changelog-tag">${r.tag_name}</span>
-        <span class="changelog-date">${r.published_at ? r.published_at.slice(0,10) : ''}</span>
-        <div class="changelog-body">${(r.body || '').replace(/\n/g,'<br>').slice(0,500)}${(r.body||'').length > 500 ? '… <a href="'+r.html_url+'" target="_blank">read more</a>' : ''}</div>
+        <span class="changelog-tag">${t.name}</span>
+        <a href="https://github.com/${REPO}/releases/tag/${t.name}" target="_blank" style="font-size:12px; margin-left:8px; color:var(--accent);">View on GitHub →</a>
       </div>`).join('');
   } catch(e) {
-    el.innerHTML = `<p style="color:var(--red)">Could not load releases.</p>`;
+    el.innerHTML = `<p style="color:var(--red)">Could not load changelog.</p>`;
   }
 }
 
