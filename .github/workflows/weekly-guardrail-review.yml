@@ -1,0 +1,288 @@
+name: Weekly guardrail review
+
+on:
+  schedule:
+    # Monday 07:17 UTC. Odd minute avoids the on-the-hour runner queue storm.
+    - cron: '17 7 * * 1'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run — print findings without opening/updating an issue'
+        required: false
+        default: 'false'
+        type: boolean
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: weekly-guardrail-review
+  cancel-in-progress: false
+
+jobs:
+  review:
+    name: Check approved sources and report findings
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
+      # ── Check 1: ESLint ──────────────────────────────────────────────────────
+      - name: Check ESLint version
+        id: check_eslint
+        run: |
+          CURRENT=$(node -e "const p=require('./package.json'); console.log(p.devDependencies.eslint || p.dependencies.eslint || 'unknown')" 2>/dev/null || echo "unknown")
+          LATEST=$(curl -sf https://registry.npmjs.org/eslint/latest | jq -r '.version' || echo "unknown")
+          echo "current=$CURRENT" >> $GITHUB_OUTPUT
+          echo "latest=$LATEST" >> $GITHUB_OUTPUT
+          # Strip ^ or ~ for comparison
+          CURRENT_CLEAN=$(echo "$CURRENT" | tr -d '^~')
+          CURRENT_MAJOR=$(echo "$CURRENT_CLEAN" | cut -d. -f1)
+          LATEST_MAJOR=$(echo "$LATEST" | cut -d. -f1)
+          CURRENT_MINOR=$(echo "$CURRENT_CLEAN" | cut -d. -f2)
+          LATEST_MINOR=$(echo "$LATEST" | cut -d. -f2)
+          if [ "$CURRENT_MAJOR" != "$LATEST_MAJOR" ]; then
+            echo "severity=major" >> $GITHUB_OUTPUT
+            echo "outdated=true" >> $GITHUB_OUTPUT
+          elif [ "$CURRENT_MINOR" != "$LATEST_MINOR" ]; then
+            echo "severity=minor" >> $GITHUB_OUTPUT
+            echo "outdated=true" >> $GITHUB_OUTPUT
+          else
+            echo "severity=patch" >> $GITHUB_OUTPUT
+            echo "outdated=false" >> $GITHUB_OUTPUT
+          fi
+
+      # ── Check 2: typescript-eslint ──────────────────────────────────────────
+      - name: Check typescript-eslint version
+        id: check_tseslint
+        run: |
+          CURRENT=$(node -e "const p=require('./package.json'); console.log(p.devDependencies['typescript-eslint'] || 'unknown')" 2>/dev/null || echo "unknown")
+          LATEST=$(curl -sf https://registry.npmjs.org/typescript-eslint/latest | jq -r '.version' || echo "unknown")
+          echo "current=$CURRENT" >> $GITHUB_OUTPUT
+          echo "latest=$LATEST" >> $GITHUB_OUTPUT
+          CURRENT_CLEAN=$(echo "$CURRENT" | tr -d '^~')
+          CURRENT_MAJOR=$(echo "$CURRENT_CLEAN" | cut -d. -f1)
+          LATEST_MAJOR=$(echo "$LATEST" | cut -d. -f1)
+          CURRENT_MINOR=$(echo "$CURRENT_CLEAN" | cut -d. -f2)
+          LATEST_MINOR=$(echo "$LATEST" | cut -d. -f2)
+          if [ "$CURRENT_MAJOR" != "$LATEST_MAJOR" ]; then
+            echo "severity=major" >> $GITHUB_OUTPUT
+            echo "outdated=true" >> $GITHUB_OUTPUT
+          elif [ "$CURRENT_MINOR" != "$LATEST_MINOR" ]; then
+            echo "severity=minor" >> $GITHUB_OUTPUT
+            echo "outdated=true" >> $GITHUB_OUTPUT
+          else
+            echo "severity=patch" >> $GITHUB_OUTPUT
+            echo "outdated=false" >> $GITHUB_OUTPUT
+          fi
+
+      # ── Check 3: Node.js LTS ─────────────────────────────────────────────────
+      - name: Check Node.js LTS version
+        id: check_node
+        run: |
+          CURRENT=$(cat .nvmrc | tr -d '[:space:]')
+          LATEST_LTS=$(curl -sf https://nodejs.org/dist/index.json | jq -r '[.[] | select(.lts != false)] | sort_by(.version) | reverse | .[0].version' | tr -d 'v' | cut -d. -f1 || echo "unknown")
+          echo "current=$CURRENT" >> $GITHUB_OUTPUT
+          echo "latest=$LATEST_LTS" >> $GITHUB_OUTPUT
+          if [ "$CURRENT" != "$LATEST_LTS" ] && [ "$LATEST_LTS" != "unknown" ]; then
+            echo "outdated=true" >> $GITHUB_OUTPUT
+            echo "severity=minor" >> $GITHUB_OUTPUT
+          else
+            echo "outdated=false" >> $GITHUB_OUTPUT
+            echo "severity=patch" >> $GITHUB_OUTPUT
+          fi
+
+      # ── Check 4: gitleaks ────────────────────────────────────────────────────
+      - name: Check gitleaks version
+        id: check_gitleaks
+        run: |
+          # Extract the tag from the image reference in ci.yml
+          CURRENT=$(grep -oP 'gitleaks/gitleaks:\K[^\s"]+' .github/workflows/ci.yml | head -1 || echo "unknown")
+          LATEST=$(curl -sf https://api.github.com/repos/gitleaks/gitleaks/releases/latest | jq -r '.tag_name' || echo "unknown")
+          echo "current=$CURRENT" >> $GITHUB_OUTPUT
+          echo "latest=$LATEST" >> $GITHUB_OUTPUT
+          if [ "$CURRENT" != "$LATEST" ] && [ "$CURRENT" != "unknown" ] && [ "$LATEST" != "unknown" ]; then
+            echo "outdated=true" >> $GITHUB_OUTPUT
+            echo "severity=patch" >> $GITHUB_OUTPUT
+          else
+            echo "outdated=false" >> $GITHUB_OUTPUT
+            echo "severity=patch" >> $GITHUB_OUTPUT
+          fi
+
+      # ── Build findings JSON and open/update issue ────────────────────────────
+      - name: Build findings and manage issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DRY_RUN: ${{ inputs.dry_run || 'false' }}
+          ESLINT_CURRENT: ${{ steps.check_eslint.outputs.current }}
+          ESLINT_LATEST: ${{ steps.check_eslint.outputs.latest }}
+          ESLINT_OUTDATED: ${{ steps.check_eslint.outputs.outdated }}
+          ESLINT_SEVERITY: ${{ steps.check_eslint.outputs.severity }}
+          TSESLINT_CURRENT: ${{ steps.check_tseslint.outputs.current }}
+          TSESLINT_LATEST: ${{ steps.check_tseslint.outputs.latest }}
+          TSESLINT_OUTDATED: ${{ steps.check_tseslint.outputs.outdated }}
+          TSESLINT_SEVERITY: ${{ steps.check_tseslint.outputs.severity }}
+          NODE_CURRENT: ${{ steps.check_node.outputs.current }}
+          NODE_LATEST: ${{ steps.check_node.outputs.latest }}
+          NODE_OUTDATED: ${{ steps.check_node.outputs.outdated }}
+          NODE_SEVERITY: ${{ steps.check_node.outputs.severity }}
+          GITLEAKS_CURRENT: ${{ steps.check_gitleaks.outputs.current }}
+          GITLEAKS_LATEST: ${{ steps.check_gitleaks.outputs.latest }}
+          GITLEAKS_OUTDATED: ${{ steps.check_gitleaks.outputs.outdated }}
+          GITLEAKS_SEVERITY: ${{ steps.check_gitleaks.outputs.severity }}
+        run: |
+          DATE=$(date -u +%Y-%m-%d)
+          REPO="${{ github.repository }}"
+
+          # Build findings array
+          FINDINGS="[]"
+
+          if [ "$ESLINT_OUTDATED" = "true" ]; then
+            FIND=$(jq -n \
+              --arg id "eslint" \
+              --arg label "ESLint" \
+              --arg current "$ESLINT_CURRENT" \
+              --arg latest "$ESLINT_LATEST" \
+              --arg severity "$ESLINT_SEVERITY" \
+              --arg action "Run /update-deps in Cursor and accept the ESLint bump. If severity=major, check plugin compatibility first — see Knowledge Base in playbook.html." \
+              --arg cursorCommand "/update-deps" \
+              --arg moreInfoUrl "https://github.com/eslint/eslint/releases/tag/v$ESLINT_LATEST" \
+              '{id:$id,label:$label,current:$current,latest:$latest,severity:$severity,action:$action,cursorCommand:$cursorCommand,moreInfoUrl:$moreInfoUrl}')
+            FINDINGS=$(echo "$FINDINGS" | jq --argjson f "$FIND" '. + [$f]')
+          fi
+
+          if [ "$TSESLINT_OUTDATED" = "true" ]; then
+            FIND=$(jq -n \
+              --arg id "typescript-eslint" \
+              --arg label "typescript-eslint" \
+              --arg current "$TSESLINT_CURRENT" \
+              --arg latest "$TSESLINT_LATEST" \
+              --arg severity "$TSESLINT_SEVERITY" \
+              --arg action "Run /update-deps in Cursor and accept the typescript-eslint bump. If severity=major, verify ESLint peer compatibility." \
+              --arg cursorCommand "/update-deps" \
+              --arg moreInfoUrl "https://github.com/typescript-eslint/typescript-eslint/releases/tag/v$TSESLINT_LATEST" \
+              '{id:$id,label:$label,current:$current,latest:$latest,severity:$severity,action:$action,cursorCommand:$cursorCommand,moreInfoUrl:$moreInfoUrl}')
+            FINDINGS=$(echo "$FINDINGS" | jq --argjson f "$FIND" '. + [$f]')
+          fi
+
+          if [ "$NODE_OUTDATED" = "true" ]; then
+            FIND=$(jq -n \
+              --arg id "nodejs" \
+              --arg label "Node.js LTS" \
+              --arg current "$NODE_CURRENT" \
+              --arg latest "$NODE_LATEST" \
+              --arg severity "$NODE_SEVERITY" \
+              --arg action "Update .nvmrc and the node-version field in .github/workflows/ci.yml to $NODE_LATEST, then re-run CI." \
+              --arg cursorCommand "Update .nvmrc to $NODE_LATEST and update node-version in .github/workflows/ci.yml to match" \
+              --arg moreInfoUrl "https://nodejs.org/en/blog/release/" \
+              '{id:$id,label:$label,current:$current,latest:$latest,severity:$severity,action:$action,cursorCommand:$cursorCommand,moreInfoUrl:$moreInfoUrl}')
+            FINDINGS=$(echo "$FINDINGS" | jq --argjson f "$FIND" '. + [$f]')
+          fi
+
+          if [ "$GITLEAKS_OUTDATED" = "true" ]; then
+            FIND=$(jq -n \
+              --arg id "gitleaks" \
+              --arg label "gitleaks" \
+              --arg current "$GITLEAKS_CURRENT" \
+              --arg latest "$GITLEAKS_LATEST" \
+              --arg severity "$GITLEAKS_SEVERITY" \
+              --arg action "Update the gitleaks Docker image tag in .github/workflows/ci.yml from $GITLEAKS_CURRENT to $GITLEAKS_LATEST." \
+              --arg cursorCommand "Update gitleaks image tag in .github/workflows/ci.yml from $GITLEAKS_CURRENT to $GITLEAKS_LATEST" \
+              --arg moreInfoUrl "https://github.com/gitleaks/gitleaks/releases/tag/$GITLEAKS_LATEST" \
+              '{id:$id,label:$label,current:$current,latest:$latest,severity:$severity,action:$action,cursorCommand:$cursorCommand,moreInfoUrl:$moreInfoUrl}')
+            FINDINGS=$(echo "$FINDINGS" | jq --argjson f "$FIND" '. + [$f]')
+          fi
+
+          FINDING_COUNT=$(echo "$FINDINGS" | jq 'length')
+          echo "findings_count=$FINDING_COUNT" >> $GITHUB_ENV
+
+          # Build machine-readable data block (in HTML comment — invisible in rendered issue)
+          DATA_JSON=$(jq -n \
+            --arg runDate "$DATE" \
+            --argjson findings "$FINDINGS" \
+            '{runDate:$runDate,findings:$findings}')
+
+          # Build human-readable table
+          TABLE="| Item | Current | Latest | Severity |\n|------|---------|--------|----------|\n"
+          if [ "$ESLINT_OUTDATED" = "true" ]; then TABLE="${TABLE}| ESLint | \`$ESLINT_CURRENT\` | \`$ESLINT_LATEST\` | $ESLINT_SEVERITY |\n"; fi
+          if [ "$TSESLINT_OUTDATED" = "true" ]; then TABLE="${TABLE}| typescript-eslint | \`$TSESLINT_CURRENT\` | \`$TSESLINT_LATEST\` | $TSESLINT_SEVERITY |\n"; fi
+          if [ "$NODE_OUTDATED" = "true" ]; then TABLE="${TABLE}| Node.js LTS | \`$NODE_CURRENT\` | \`$NODE_LATEST\` | $NODE_SEVERITY |\n"; fi
+          if [ "$GITLEAKS_OUTDATED" = "true" ]; then TABLE="${TABLE}| gitleaks | \`$GITLEAKS_CURRENT\` | \`$GITLEAKS_LATEST\` | $GITLEAKS_SEVERITY |\n"; fi
+
+          ISSUE_BODY="## Guardrail review — $DATE
+
+<!-- guardrail-review-data
+$DATA_JSON
+-->
+
+$(printf "$TABLE")
+
+**Cursor changelog** (manual review): https://cursor.com/changelog
+
+To adopt: open [playbook.html](https://github.com/$REPO/blob/main/playbook.html) → Updates section, or run \`/guardrail-upgrade\` in Cursor.
+
+_Opened automatically by the weekly-guardrail-review workflow._"
+
+          # Dry run: just print
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "=== DRY RUN: $FINDING_COUNT finding(s) ==="
+            echo "$ISSUE_BODY"
+            exit 0
+          fi
+
+          TITLE_PREFIX="[guardrail-review]"
+
+          # Idempotent: check for existing open issue
+          EXISTING=$(gh issue list \
+            --repo "$REPO" \
+            --label "guardrail-review" \
+            --state open \
+            --limit 1 \
+            --json number,title \
+            --jq '.[0].number // empty')
+
+          if [ "$FINDING_COUNT" = "0" ]; then
+            echo "No findings this week."
+            if [ -n "$EXISTING" ]; then
+              gh issue comment "$EXISTING" --repo "$REPO" --body "Weekly review on $DATE found no new findings. Closing as all clear."
+              gh issue close "$EXISTING" --repo "$REPO"
+              echo "Closed existing issue #$EXISTING — all clear."
+            fi
+          elif [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --repo "$REPO" \
+              --body "Updated findings from $DATE run:
+
+<!-- guardrail-review-data
+$DATA_JSON
+-->
+
+$(printf "$TABLE")
+
+_Updated by weekly-guardrail-review workflow._"
+            echo "Appended to existing issue #$EXISTING."
+          else
+            gh issue create \
+              --repo "$REPO" \
+              --title "$TITLE_PREFIX Weekly update — $DATE" \
+              --body "$ISSUE_BODY" \
+              --label "guardrail-review"
+            echo "Created new issue."
+          fi
+
+      - name: Summary
+        run: |
+          echo "### Weekly guardrail review complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Run date: $(date -u +%Y-%m-%d)" >> $GITHUB_STEP_SUMMARY
+          echo "Findings: ${{ env.findings_count }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Current | Latest | Outdated |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|---------|--------|----------|" >> $GITHUB_STEP_SUMMARY
+          echo "| ESLint | ${{ steps.check_eslint.outputs.current }} | ${{ steps.check_eslint.outputs.latest }} | ${{ steps.check_eslint.outputs.outdated }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| typescript-eslint | ${{ steps.check_tseslint.outputs.current }} | ${{ steps.check_tseslint.outputs.latest }} | ${{ steps.check_tseslint.outputs.outdated }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Node.js LTS | ${{ steps.check_node.outputs.current }} | ${{ steps.check_node.outputs.latest }} | ${{ steps.check_node.outputs.outdated }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| gitleaks | ${{ steps.check_gitleaks.outputs.current }} | ${{ steps.check_gitleaks.outputs.latest }} | ${{ steps.check_gitleaks.outputs.outdated }} |" >> $GITHUB_STEP_SUMMARY
