@@ -213,11 +213,14 @@ jobs:
           if [ "$NODE_OUTDATED" = "true" ]; then TABLE="${TABLE}| Node.js LTS | \`$NODE_CURRENT\` | \`$NODE_LATEST\` | $NODE_SEVERITY |\n"; fi
           if [ "$GITLEAKS_OUTDATED" = "true" ]; then TABLE="${TABLE}| gitleaks | \`$GITLEAKS_CURRENT\` | \`$GITLEAKS_LATEST\` | $GITLEAKS_SEVERITY |\n"; fi
 
+          HTML_OPEN='<!-- guardrail-review-data'
+          HTML_CLOSE='-->'
+
           ISSUE_BODY="## Guardrail review — $DATE
 
-<!-- guardrail-review-data
-$DATA_JSON
--->
+${HTML_OPEN}
+${DATA_JSON}
+${HTML_CLOSE}
 
 $(printf "$TABLE")
 
@@ -256,9 +259,9 @@ _Opened automatically by the weekly-guardrail-review workflow._"
             gh issue comment "$EXISTING" --repo "$REPO" \
               --body "Updated findings from $DATE run:
 
-<!-- guardrail-review-data
-$DATA_JSON
--->
+${HTML_OPEN}
+${DATA_JSON}
+${HTML_CLOSE}
 
 $(printf "$TABLE")
 
