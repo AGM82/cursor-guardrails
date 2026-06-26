@@ -1,8 +1,31 @@
 # Agent instructions
 
-Cross-tool entry point for AI coding agents (Cursor Agent, and others that read
-`AGENTS.md`). Keep this short and action-oriented. The detailed, scoped rules
-live in `.cursor/rules/*.mdc`; this file is the always-on summary.
+Cross-tool entry point for AI coding agents — Cursor Agent and any other agent
+that reads `AGENTS.md`. Keep this short and action-oriented. The detailed,
+scoped rules live in `.cursor/rules/*.mdc`; this file is the always-on summary.
+
+## Capability model
+
+This template enables a single developer to operate at expert-team level across
+six domains. Apply the relevant domain rules whenever the work touches that area:
+
+| Domain                         | Rule file                     |
+| ------------------------------ | ----------------------------- |
+| Engineering (core)             | `00-core.mdc`                 |
+| Security & privacy             | `10-security-popia.mdc`       |
+| Commits                        | `20-commits.mdc`              |
+| Frontend stack                 | `30-react-stack.mdc`          |
+| **Visual & graphic design**    | `31-design.mdc`               |
+| **UX & behavioural science**   | `32-ux-behavioural.mdc`       |
+| **Data science & measurement** | `33-data-science.mdc`         |
+| Tooling & supply chain         | `40-tooling-supply-chain.mdc` |
+| **AI tool evaluation**         | `50-ai-tooling.mdc`           |
+| Project specifics              | `90-project-context.mdc`      |
+
+**Tool philosophy**: use the best available AI agent for the task. Cursor is the
+current primary coding agent. Evaluate new tools using the framework in
+`50-ai-tooling.mdc` — stack-first (addition before replacement), high bar for
+switching the primary agent.
 
 ## Commands
 
@@ -48,8 +71,13 @@ make failing code pass, and do not disable a lint/type rule to silence an error
 - Security & POPIA: `.cursor/rules/10-security-popia.mdc`
 - Commits (Conventional Commits): `.cursor/rules/20-commits.mdc`
 - Frontend stack: `.cursor/rules/30-react-stack.mdc`
+- Visual & graphic design: `.cursor/rules/31-design.mdc`
+- UX & behavioural science: `.cursor/rules/32-ux-behavioural.mdc`
+- Data science & measurement: `.cursor/rules/33-data-science.mdc`
 - Tooling & supply chain: `.cursor/rules/40-tooling-supply-chain.mdc`
+- AI tool evaluation: `.cursor/rules/50-ai-tooling.mdc`
 - Project specifics (fill this in): `.cursor/rules/90-project-context.mdc`
+- Playbook dashboard: `playbook.html` (hosted on Cloudflare Pages)
 
 > Keep this file in sync with `.cursor/rules/00-core.mdc`. If the two ever
 > disagree, the rule files are authoritative for Cursor; this file is what
