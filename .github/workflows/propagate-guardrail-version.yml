@@ -78,20 +78,23 @@ jobs:
     name: Dispatch to downstream repos
     runs-on: ubuntu-latest
     needs: release
-    # Skip silently if the secret is not configured — mechanism A still works.
-    if: ${{ secrets.DOWNSTREAM_DISPATCH_TOKEN != '' }}
     strategy:
       matrix:
         # Add downstream repos here as the ecosystem grows.
         repo:
           - AGM82/throughline
     steps:
-      - name: Dispatch repository_dispatch to ${{ matrix.repo }}
+      - name: Dispatch repository_dispatch to downstream repo
         env:
           DISPATCH_TOKEN: ${{ secrets.DOWNSTREAM_DISPATCH_TOKEN }}
           VERSION: ${{ needs.release.outputs.version }}
           TARGET_REPO: ${{ matrix.repo }}
         run: |
+          # Skip silently if the secret is not configured — mechanism A still works.
+          if [ -z "$DISPATCH_TOKEN" ]; then
+            echo "DOWNSTREAM_DISPATCH_TOKEN not set — skipping dispatch for ${TARGET_REPO}. Mechanism A (Release) still active."
+            exit 0
+          fi
           MANIFEST_URL="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/main/guardrail-layers.json"
           RELEASE_URL="https://github.com/${GITHUB_REPOSITORY}/releases/tag/guardrail-v${VERSION}"
 
