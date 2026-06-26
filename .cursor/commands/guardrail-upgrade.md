@@ -69,11 +69,17 @@ Read the following files from TEMPLATE_PATH and from THIS project. For each file
 
 **Layer 1 — AI instructions** (always safe to add; nothing here touches application code)
 
+> The canonical file list for Layer 1 is maintained in `guardrail-layers.json` at the template root under `adoptionLayers["1"].files`. The list below is the human-readable reference; if they ever diverge, the JSON is authoritative.
+
 - `.cursor/rules/00-core.mdc`
 - `.cursor/rules/10-security-popia.mdc`
 - `.cursor/rules/20-commits.mdc`
 - `.cursor/rules/30-react-stack.mdc`
+- `.cursor/rules/31-design.mdc`
+- `.cursor/rules/32-ux-behavioural.mdc`
+- `.cursor/rules/33-data-science.mdc`
 - `.cursor/rules/40-tooling-supply-chain.mdc`
+- `.cursor/rules/50-ai-tooling.mdc`
 - `.cursor/rules/90-project-context.mdc`
 - `.cursor/commands/review.md`
 - `.cursor/commands/pr.md`
@@ -226,13 +232,14 @@ Human steps — confirm these are done before declaring the upgrade complete:
 
 ## Record upgrade version
 
-After completing all approved layers, write the applied template version to this project:
+After completing all approved layers, write the applied template version to this project.
+The current template version is in `TEMPLATE_PATH/.cursor/guardrail-version` (also in `TEMPLATE_PATH/guardrail-layers.json` → `guardrailVersion`):
 
 ```
-echo 1.0.0 > .cursor/guardrail-version
+echo 1.1.0 > .cursor/guardrail-version
 ```
 
-(Replace `1.0.0` with the version from `TEMPLATE_PATH/.cursor/guardrail-version`.)
+(Replace `1.1.0` with the version from `TEMPLATE_PATH/.cursor/guardrail-version`.)
 
 Add `.cursor/guardrail-version` to this project's git tracking if it is not already tracked:
 

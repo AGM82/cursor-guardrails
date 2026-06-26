@@ -83,7 +83,9 @@ Adopt the guardrails incrementally without touching your application code.
 
 See [`docs/guardrail-upgrade-observations.md`](docs/guardrail-upgrade-observations.md) for lessons learned from a real adoption.
 
-**Template versioning:** after a successful upgrade, a `.cursor/guardrail-version` file is written to track which template release was applied. Future runs flag layers that have drifted. Tag your own template releases as `guardrail-v1.0.0` on GitHub to participate in this system.
+**Template versioning:** after a successful upgrade, a `.cursor/guardrail-version` file is written to track which template release was applied. Future runs flag layers that have drifted. Tag your own template releases as `guardrail-v1.1.0` on GitHub to participate in this system.
+
+**Machine-readable layer model:** [`guardrail-layers.json`](./guardrail-layers.json) at the repo root encodes the adoption-layer model and risk-tier mapping as a versioned artefact. Downstream governance tools (such as Throughline) vendor this file and receive automatic refresh PRs when it changes. See [`docs/guardrail-layers.md`](./docs/guardrail-layers.md) for the consumption pattern and schema reference.
 
 ## GitHub template (maintainers, one-time)
 

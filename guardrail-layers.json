@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "guardrailVersion": "1.1.0",
+  "description": "Canonical adoption-layer model and risk-tier mapping for the cursor-guardrails template. Single source of truth for /guardrail-upgrade and downstream governance tools such as Throughline. Do not edit by hand — changes must be deliberate and version-bumped.",
+  "source": "https://github.com/AGM82/cursor-guardrails",
+  "lastUpdated": "2026-06-26",
+  "adoptionLayers": {
+    "1": {
+      "name": "AI instructions",
+      "description": "Rule files, slash commands, hooks, and cross-tool agent summary. Always safe to add — nothing here touches application code.",
+      "safe": true,
+      "files": [
+        ".cursor/rules/00-core.mdc",
+        ".cursor/rules/10-security-popia.mdc",
+        ".cursor/rules/20-commits.mdc",
+        ".cursor/rules/30-react-stack.mdc",
+        ".cursor/rules/31-design.mdc",
+        ".cursor/rules/32-ux-behavioural.mdc",
+        ".cursor/rules/33-data-science.mdc",
+        ".cursor/rules/40-tooling-supply-chain.mdc",
+        ".cursor/rules/50-ai-tooling.mdc",
+        ".cursor/rules/90-project-context.mdc",
+        ".cursor/commands/review.md",
+        ".cursor/commands/pr.md",
+        ".cursor/commands/update-deps.md",
+        ".cursor/commands/guardrail-upgrade.md",
+        ".cursor/hooks.json",
+        ".cursor/hooks/guard-shell.mjs",
+        ".cursor/hooks/guard-read.mjs",
+        ".cursor/hooks/audit.mjs",
+        "AGENTS.md"
+      ],
+      "domains": [
+        "Engineering",
+        "Security",
+        "Commits",
+        "Frontend",
+        "Design",
+        "UX",
+        "DataScience",
+        "Tooling",
+        "AITooling"
+      ]
+    },
+    "2": {
+      "name": "Git hygiene",
+      "description": "Version control conventions, ignore rules, editor config, dependency management, legal, and contribution docs. Safe to add.",
+      "safe": true,
+      "files": [
+        ".gitattributes",
+        ".gitignore",
+        ".nvmrc",
+        ".npmrc",
+        ".editorconfig",
+        "LICENSE",
+        "SECURITY.md",
+        "CONTRIBUTING.md",
+        ".github/CODEOWNERS",
+        ".github/dependabot.yml",
+        ".github/pull_request_template.md"
+      ]
+    },
+    "3": {
+      "name": "Commit discipline",
+      "description": "Conventional Commits enforcement, pre-commit hooks, and lint-staged. Safe to add without touching application code.",
+      "safe": true,
+      "files": ["commitlint.config.mjs", ".husky/pre-commit", ".husky/commit-msg"]
+    },
+    "4": {
+      "name": "Code quality toolchain",
+      "description": "ESLint, Prettier, strict TypeScript. Merge carefully — may surface existing errors in application code.",
+      "safe": false,
+      "files": ["eslint.config.js", ".prettierrc.json", "tsconfig.json"]
+    },
+    "5": {
+      "name": "CI pipeline",
+      "description": "GitHub Actions: typecheck, lint, build, npm audit, secret scan (gitleaks), SAST (Semgrep). Merge carefully.",
+      "safe": false,
+      "files": [".github/workflows/ci.yml"]
+    },
+    "6": {
+      "name": "Code compliance audit",
+      "description": "Manual audit of existing source code against installed rules. Classifies findings as Blocker / Should-fix / Nit. Not a file copy — a process step.",
+      "safe": false,
+      "files": []
+    },
+    "7": {
+      "name": "Governance activation",
+      "description": "Human checklist: branch protection on main, Dependabot PRs reviewed, gh CLI installed. Not a file copy — a verification step.",
+      "safe": false,
+      "files": []
+    }
+  },
+  "riskTiers": {
+    "Low": {
+      "requiredLayers": [1, 2, 3],
+      "rationale": "Low-risk initiatives require AI governance, version control discipline, and commit standards. Code quality and CI are strongly encouraged but not mandatory gates."
+    },
+    "Medium": {
+      "requiredLayers": [1, 2, 3, 4, 5],
+      "rationale": "Medium-risk initiatives require full toolchain enforcement and a CI pipeline with security scanning in addition to the Low requirements."
+    },
+    "High": {
+      "requiredLayers": [1, 2, 3, 4, 5, 6],
+      "rationale": "High-risk initiatives require all of Medium plus a formal code compliance audit before build begins. Layer 7 governance activation is expected but recorded separately as a human checklist."
+    }
+  },
+  "schemaChangelog": [
+    {
+      "schemaVersion": 1,
+      "date": "2026-06-26",
+      "note": "Initial publication. Encodes 7 adoption layers and Low/Medium/High tier mapping. Introduces 10 rule files including four new holistic domains (31-design, 32-ux-behavioural, 33-data-science, 50-ai-tooling)."
+    }
+  ]
+}
