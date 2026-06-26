@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* global fetch, setTimeout */
 /**
  * ai-review.mjs
  *
@@ -256,8 +257,7 @@ function validateNpmPackage(packageName) {
       { encoding: 'utf8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] }
     );
     const info = JSON.parse(result);
-    const weeklyDownloads = info?.dist?.['weekly-downloads'] ?? info?.['dist-tags'] ? 9999 : 0;
-    // Accept if the package exists and has a valid dist-tags (published)
+    // Accept if the package exists and has been published (dist-tags.latest is set).
     return !!info?.['dist-tags']?.latest;
   } catch {
     return false;
