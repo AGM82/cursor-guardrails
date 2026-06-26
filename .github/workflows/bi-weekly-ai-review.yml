@@ -72,11 +72,12 @@ jobs:
           RUN_DATE="${{ steps.ai_review.outputs.run_date }}"
           REVIEW_TYPE="${{ steps.ai_review.outputs.review_type }}"
 
-          # Build markdown table from suggestions
+          # Build markdown table from suggestions (fields escaped to prevent markdown/injection issues)
           TABLE=$(node -e "
             const d = require('./ai-suggestions.json');
+            const esc = v => String(v ?? '').replace(/\r?\n|\r/g, ' ').replace(/\|/g, '\\\\|').replace(/</g, '&lt;').replace(/>/g, '&gt;').slice(0, 200);
             const rows = d.suggestions.map(s =>
-              '| ' + [s.area, s.title, s.confidence, s.stability, s.effort].join(' | ') + ' |'
+              '| ' + [s.area, s.title, s.confidence, s.stability, s.effort].map(esc).join(' | ') + ' |'
             ).join('\n');
             console.log('| Area | Title | Confidence | Stability | Effort |\n|------|-------|------------|-----------|--------|\n' + rows);
           ")
@@ -84,7 +85,8 @@ jobs:
           WATCHLIST=$(node -e "
             const d = require('./ai-suggestions.json');
             if (!d.watchlist || !d.watchlist.length) { console.log('_No watchlist items._'); return; }
-            const rows = d.watchlist.map(s => '- **' + s.title + '** (' + s.area + ') — ' + s.reason).join('\n');
+            const esc = v => String(v ?? '').replace(/\r?\n|\r/g, ' ').replace(/\|/g, '\\\\|').replace(/</g, '&lt;').replace(/>/g, '&gt;').slice(0, 200);
+            const rows = d.watchlist.map(s => '- **' + esc(s.title) + '** (' + esc(s.area) + ') — ' + esc(s.reason)).join('\n');
             console.log(rows);
           ")
 
