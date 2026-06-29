@@ -944,21 +944,35 @@ async function loadAiSuggestions() {
       return;
     }
     const data = JSON.parse(match[1].trim());
-    const dismissed = JSON.parse(localStorage.getItem('dismissedAiSuggestions') || '{}');
-    const active = (data.suggestions || []).filter(s => dismissed[s.id] !== data.runDate);
+    // Expose run metadata + the suggestion objects so the decision handlers can
+    // build a precise Cursor implementation prompt later.
+    window.__aiRunDate = data.runDate;
+    window.__aiIssueNumber = issue.number;
+    window.__aiSuggestions = {};
+    const decisions = (JSON.parse(localStorage.getItem('aiDecisions') || '{}'))[data.runDate] || {};
+    const suggestions = data.suggestions || [];
     const CONF_COLOUR = { high: 'var(--green)', medium: 'var(--yellow)', low: 'var(--text3)' };
     const STAB_BADGE = { stable: 'badge-safe', emerging: 'badge-minor', experimental: 'badge-info' };
+    const decidedCount = Object.keys(decisions).length;
+    const acceptedCount = Object.values(decisions).filter(d => d.decision === 'accepted').length;
 
     let html = `<div class="update-status-bar">
       <span>Review date: <strong>${data.runDate}</strong> · Type: <strong>${data.reviewType || 'biweekly'}</strong> · <a href="${issue.html_url}" target="_blank">Issue #${issue.number} →</a></span>
       <button class="refresh-btn" onclick="aiSuggestionsLoaded=false; loadAiSuggestions()">↻ Refresh</button>
     </div>`;
 
-    if (!active.length) {
-      html += `<div class="empty-state"><div class="empty-state-icon">✅</div><p>All AI suggestions reviewed for ${data.runDate}.</p></div>`;
+    html += `<div id="ai-decision-bar" class="update-status-bar" style="${decidedCount ? '' : 'display:none;'} background:var(--bg2); border:1px solid var(--border);">
+      <span><strong id="ai-decided-count">${decidedCount}</strong> decision<span id="ai-decided-plural">${decidedCount===1?'':'s'}</span> made · <strong id="ai-accepted-count">${acceptedCount}</strong> to implement</span>
+      <button class="btn btn-primary" id="ai-gen-btn" onclick="generateDecisionPrompt(this)">Generate Cursor prompt →</button>
+    </div>`;
+
+    if (!suggestions.length) {
+      html += `<div class="empty-state"><div class="empty-state-icon">✅</div><p>No actionable suggestions in the latest review (${data.runDate}).</p></div>`;
     } else {
-      active.forEach(s => {
-        html += `<div class="update-card" id="ai-card-${s.id}">
+      suggestions.forEach(s => {
+        window.__aiSuggestions[s.id] = s;
+        const decided = decisions[s.id] ? decisions[s.id].decision : '';
+        html += `<div class="update-card" id="ai-card-${s.id}" style="${decisionCardStyle(decided)}">
           <div class="update-card-head">
             <span class="update-card-name">${s.title}</span>
             <span class="badge badge-info">${s.area}</span>
@@ -966,10 +980,7 @@ async function loadAiSuggestions() {
             <span style="font-size:11px; font-weight:700; color:${CONF_COLOUR[s.confidence] || 'var(--text3)'}">● ${s.confidence} confidence</span>
           </div>
           <div style="font-size:12px; color:var(--text2); margin-bottom:10px; line-height:1.6;">${s.reason}</div>
-          <div class="update-card-actions">
-            <button class="btn btn-info" id="ai-det-btn-${s.id}" onclick="toggleAiDetail('${s.id}')">Details ▼</button>
-            <button class="btn btn-decline" onclick="dismissAiSuggestion('${s.id}', '${data.runDate}')">Dismiss</button>
-          </div>
+          <div class="update-card-actions" id="ai-actions-${s.id}">${decisionActionsHtml(s.id, decided)}</div>
           <div class="detail-panel" id="ai-detail-${s.id}">
             <div class="detail-panel-content">
               <p><strong>Current:</strong> ${s.current}</p>
@@ -1006,12 +1017,117 @@ function toggleAiDetail(id) {
   if (btn) btn.textContent = panel.classList.contains('open') ? 'Details ▲' : 'Details ▼';
 }
 
-function dismissAiSuggestion(id, runDate) {
-  const dis = JSON.parse(localStorage.getItem('dismissedAiSuggestions') || '{}');
-  dis[id] = runDate;
-  localStorage.setItem('dismissedAiSuggestions', JSON.stringify(dis));
+// ─── AI suggestion decisions (accept / decline) ───────────────────────────────
+// Decisions are stored locally per review date for instant UI feedback, then
+// turned into a single Cursor prompt that implements the accepted ones and
+// records every decision in .github/ai-review-decisions.json — the durable
+// ledger that the next AI review reads so it never re-proposes a settled item.
+
+function decisionCardStyle(decided) {
+  if (decided === 'accepted') return 'border-left:3px solid var(--green);';
+  if (decided === 'declined') return 'opacity:0.6; border-left:3px solid var(--text3);';
+  return '';
+}
+
+function decisionActionsHtml(id, decided) {
+  const details = `<button class="btn btn-info" id="ai-det-btn-${id}" onclick="toggleAiDetail('${id}')">Details ▼</button>`;
+  if (decided === 'accepted') {
+    return `${details}<span style="font-size:11px; font-weight:700; color:var(--green); margin:0 4px;">✓ Accepted</span><button class="btn btn-ghost" onclick="undoAiDecision('${id}')">Undo</button>`;
+  }
+  if (decided === 'declined') {
+    return `${details}<span style="font-size:11px; font-weight:700; color:var(--text3); margin:0 4px;">✕ Declined</span><button class="btn btn-ghost" onclick="undoAiDecision('${id}')">Undo</button>`;
+  }
+  return `${details}
+    <button class="btn btn-primary" onclick="decideAi('${id}','accepted')">Accept</button>
+    <button class="btn btn-decline" onclick="decideAi('${id}','declined')">Decline</button>`;
+}
+
+function decideAi(id, decision) {
+  const runDate = window.__aiRunDate;
+  const all = JSON.parse(localStorage.getItem('aiDecisions') || '{}');
+  all[runDate] = all[runDate] || {};
+  const s = (window.__aiSuggestions || {})[id] || {};
+  all[runDate][id] = {
+    decision,
+    title: s.title, area: s.area, current: s.current, proposed: s.proposed,
+    source: s.source || '', npmPackage: s.npmPackage || null, effort: s.effort,
+    confidence: s.confidence, stability: s.stability,
+    decidedAt: new Date().toISOString().slice(0, 10),
+  };
+  localStorage.setItem('aiDecisions', JSON.stringify(all));
   const card = document.getElementById('ai-card-' + id);
-  if (card) { card.style.opacity='0'; card.style.transition='opacity 0.3s'; setTimeout(()=>card.remove(), 300); }
+  if (card) card.style.cssText = decisionCardStyle(decision);
+  const actions = document.getElementById('ai-actions-' + id);
+  if (actions) actions.innerHTML = decisionActionsHtml(id, decision);
+  updateDecisionBar();
+}
+
+function undoAiDecision(id) {
+  const runDate = window.__aiRunDate;
+  const all = JSON.parse(localStorage.getItem('aiDecisions') || '{}');
+  if (all[runDate]) { delete all[runDate][id]; localStorage.setItem('aiDecisions', JSON.stringify(all)); }
+  const card = document.getElementById('ai-card-' + id);
+  if (card) card.style.cssText = decisionCardStyle('');
+  const actions = document.getElementById('ai-actions-' + id);
+  if (actions) actions.innerHTML = decisionActionsHtml(id, '');
+  updateDecisionBar();
+}
+
+function updateDecisionBar() {
+  const runDate = window.__aiRunDate;
+  const decisions = (JSON.parse(localStorage.getItem('aiDecisions') || '{}'))[runDate] || {};
+  const n = Object.keys(decisions).length;
+  const a = Object.values(decisions).filter(d => d.decision === 'accepted').length;
+  const bar = document.getElementById('ai-decision-bar');
+  if (!bar) return;
+  bar.style.display = n ? '' : 'none';
+  const dc = document.getElementById('ai-decided-count'); if (dc) dc.textContent = n;
+  const dp = document.getElementById('ai-decided-plural'); if (dp) dp.textContent = n === 1 ? '' : 's';
+  const ac = document.getElementById('ai-accepted-count'); if (ac) ac.textContent = a;
+}
+
+function generateDecisionPrompt(btn) {
+  const runDate = window.__aiRunDate;
+  const issueNo = window.__aiIssueNumber;
+  const decisions = (JSON.parse(localStorage.getItem('aiDecisions') || '{}'))[runDate] || {};
+  const entries = Object.entries(decisions);
+  if (!entries.length) return;
+  const accepted = entries.filter(([, d]) => d.decision === 'accepted');
+  const declined = entries.filter(([, d]) => d.decision === 'declined');
+
+  const fmtAccepted = accepted.map(([id, d]) =>
+    `- [${id}] ${d.title} — ${d.area}\n    Current: ${d.current}\n    Proposed: ${d.proposed}` +
+    (d.source ? `\n    Source: ${d.source}` : '') +
+    (d.npmPackage ? `\n    npm package: ${d.npmPackage}` : '') +
+    `\n    Effort: ${d.effort}`
+  ).join('\n');
+
+  const prompt =
+`Apply accepted improvements from the AI guardrail review dated ${runDate} (issue #${issueNo}) to the cursor-guardrails template.
+
+Work on a new branch and open ONE pull request. Follow .cursor/rules/00-core.mdc; run npm run typecheck, lint and test before finishing. Make the smallest change that satisfies each suggestion and extend existing patterns rather than inventing new ones.
+
+1) IMPLEMENT each accepted suggestion below, editing the exact files named in its Proposed text:
+${accepted.length ? fmtAccepted : '  (none accepted this round)'}
+
+2) RECORD every decision in .github/ai-review-decisions.json (create it as a JSON array if missing). Append one object per decision:
+   { "id": "<id>", "title": "<title>", "area": "<area>", "decision": "accepted|declined", "date": "${runDate}", "reviewIssue": "#${issueNo}", "guardrailVersion": "<current value of .cursor/guardrail-version>" }
+
+   ACCEPTED ids: ${accepted.map(([id]) => id).join(', ') || '(none)'}
+   DECLINED ids: ${declined.map(([id]) => id).join(', ') || '(none)'}
+
+3) If anything was implemented, bump .cursor/guardrail-version by one patch level and update guardrailVersion in guardrail-layers.json to match (the system improved).
+
+Open the PR titled "feat(guardrails): apply AI-review improvements ${runDate}", summarise what changed, and list the declined items so future reviews do not re-propose them.`;
+
+  navigator.clipboard.writeText(prompt).then(() => {
+    if (btn) {
+      const orig = btn.textContent;
+      btn.textContent = 'Copied! Paste into Cursor';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 2500);
+    }
+  });
 }
 
 // ─── Research panel ───────────────────────────────────────────────────────────
