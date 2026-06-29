@@ -21,8 +21,50 @@ const API_KEY = process.env.ANTHROPIC_API_KEY;
 const REVIEW_TYPE = process.env.REVIEW_TYPE || 'biweekly';
 const FOCUS_TOPIC = (process.env.FOCUS_TOPIC || '').trim();
 const DRY_RUN = process.env.DRY_RUN === 'true';
-const MODEL = 'claude-sonnet-4-5';
-const MAX_TOKENS = 4096;
+// Sonnet 4.6 is a drop-in replacement for 4.5 at the same price, ~70% more
+// token-efficient and ~38% more accurate per Anthropic's benchmarks.
+const MODEL = 'claude-sonnet-4-6';
+// Each call returns at most 5 bounded suggestions; 2000 is a generous ceiling.
+const MAX_TOKENS = 2000;
+// Low temperature: this is analytical extraction, not creative writing. Keeps
+// suggestions consistent and confidence calibration stable across runs.
+const TEMPERATURE = 0.2;
+
+// Enforced output schema (structured outputs, GA on Sonnet 4.5/4.6). The API
+// uses constrained decoding to guarantee valid JSON matching this shape, so we
+// never have to regex-scrape a code fence again. Reasoning fields are listed
+// first so the model justifies a suggestion before committing to a confidence
+// level (required properties are emitted in order). The JSON Schema subset
+// Claude accepts cannot express string-length limits, so those caps stay in
+// parseSuggestions() as application-layer validation.
+const SUGGESTION_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    suggestions: {
+      type: 'array',
+      description: 'Up to 5 actionable improvement suggestions for the template.',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          reason: { type: 'string', description: 'Why this matters now, with a verifiable basis (named standard, official docs, or evidence). State the reasoning before deciding confidence.' },
+          current: { type: 'string', description: 'What the template does today for this area, or "Not implemented".' },
+          proposed: { type: 'string', description: 'The specific change to make, naming the exact file(s) where possible.' },
+          title: { type: 'string', description: 'Short imperative summary of the suggestion.' },
+          area: { type: 'string', description: 'Domain area, e.g. Engineering, Security, Design, UX, Data Science, AI Tooling.' },
+          source: { type: 'string', description: 'Named standard, official documentation, npm package, or independent evidence backing this suggestion.' },
+          confidence: { type: 'string', enum: ['high', 'medium', 'low'], description: 'Strength of the evidence behind the suggestion.' },
+          stability: { type: 'string', enum: ['stable', 'emerging', 'experimental'], description: 'Maturity of the underlying practice or tool.' },
+          effort: { type: 'string', enum: ['low', 'medium', 'high'], description: 'Implementation effort: low <1h, medium ~half day, high full day or more.' },
+          npmPackage: { type: ['string', 'null'], description: 'Exact npm package name if this suggestion recommends one, otherwise null.' },
+        },
+        required: ['reason', 'current', 'proposed', 'title', 'area', 'source', 'confidence', 'stability', 'effort'],
+      },
+    },
+  },
+  required: ['suggestions'],
+};
 
 // ── Read key repo files (compact summaries, not full contents) ──────────────
 
@@ -257,26 +299,36 @@ Identify gaps in:
 // ── Anthropic API call ───────────────────────────────────────────────────────
 
 async function callAnthropic(systemPrompt, userMessage) {
+  // Prompt caching and structured outputs are both GA — no beta headers needed.
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
       'x-api-key': API_KEY,
       'anthropic-version': '2023-06-01',
-      'anthropic-beta': 'prompt-caching-2024-07-31',
       'content-type': 'application/json',
     },
     body: JSON.stringify({
       model: MODEL,
       max_tokens: MAX_TOKENS,
+      temperature: TEMPERATURE,
       system: [
         {
           type: 'text',
           text: systemPrompt,
-          // Mark the system prompt (repo context) as cacheable — reduces cost ~90% on repeat runs.
+          // Mark the system prompt (repo context) as cacheable — the six topic
+          // calls run sequentially, so call 1 writes the cache and calls 2-6
+          // read it at ~10% cost.
           cache_control: { type: 'ephemeral' },
         },
       ],
       messages: [{ role: 'user', content: userMessage }],
+      // Constrained decoding guarantees the response is valid JSON in our shape.
+      output_config: {
+        format: {
+          type: 'json_schema',
+          schema: SUGGESTION_SCHEMA,
+        },
+      },
     }),
   });
 
@@ -306,49 +358,49 @@ function validateNpmPackage(packageName) {
 // ── Parse structured suggestions from Claude's response ─────────────────────
 
 function parseSuggestions(text, topicId) {
-  // Try to extract JSON from the response
-  const jsonMatch = text.match(/```json\s*([\s\S]*?)```/) ||
-                    text.match(/\{[\s\S]*"suggestions"[\s\S]*\}/);
-  if (!jsonMatch) return [];
-
+  // Structured outputs guarantee `text` is valid JSON in the SUGGESTION_SCHEMA
+  // shape, so this JSON.parse cannot realistically throw. We still guard it and
+  // re-validate every field — the schema cannot enforce string lengths, and npm
+  // package existence must be checked deterministically, never trusted to the model.
+  let parsed;
   try {
-    const raw = jsonMatch[1] || jsonMatch[0];
-    const parsed = JSON.parse(raw.trim());
-    const suggestions = parsed.suggestions || parsed;
-    if (!Array.isArray(suggestions)) return [];
-
-    return suggestions
-      .filter(s => s.title && s.proposed && s.confidence)
-      .map(s => ({
-        id: `${topicId}-${s.id || Math.random().toString(36).slice(2, 7)}`,
-        topic: topicId,
-        title: String(s.title).slice(0, 120),
-        area: s.area || topicId,
-        current: s.current || 'Not implemented',
-        proposed: String(s.proposed).slice(0, 500),
-        confidence: ['high', 'medium', 'low'].includes(s.confidence) ? s.confidence : 'low',
-        stability: ['stable', 'emerging', 'experimental'].includes(s.stability) ? s.stability : 'stable',
-        effort: ['low', 'medium', 'high'].includes(s.effort) ? s.effort : 'medium',
-        source: s.source || '',
-        reason: String(s.reason || '').slice(0, 300),
-        npmPackage: s.npmPackage || null,
-        validated: true,
-      }))
-      .filter(s => {
-        // Validate npm packages before including
-        if (s.npmPackage) {
-          const valid = validateNpmPackage(s.npmPackage);
-          if (!valid) {
-            process.stderr.write(`[ai-review] Dropped suggestion "${s.title}" — npm package "${s.npmPackage}" not found\n`);
-            return false;
-          }
-        }
-        return true;
-      });
+    parsed = JSON.parse(text);
   } catch (e) {
-    process.stderr.write(`[ai-review] Failed to parse suggestions for ${topicId}: ${e.message}\n`);
+    process.stderr.write(`[ai-review] Unexpected non-JSON response for ${topicId}: ${e.message}\n`);
     return [];
   }
+
+  const suggestions = Array.isArray(parsed) ? parsed : (parsed.suggestions || []);
+  if (!Array.isArray(suggestions)) return [];
+
+  return suggestions
+    .filter(s => s.title && s.proposed && s.confidence)
+    .map(s => ({
+      id: `${topicId}-${Math.random().toString(36).slice(2, 7)}`,
+      topic: topicId,
+      title: String(s.title).slice(0, 120),
+      area: String(s.area || topicId).slice(0, 80),
+      current: String(s.current || 'Not implemented').slice(0, 300),
+      proposed: String(s.proposed).slice(0, 500),
+      confidence: ['high', 'medium', 'low'].includes(s.confidence) ? s.confidence : 'low',
+      stability: ['stable', 'emerging', 'experimental'].includes(s.stability) ? s.stability : 'stable',
+      effort: ['low', 'medium', 'high'].includes(s.effort) ? s.effort : 'medium',
+      source: String(s.source || '').slice(0, 200),
+      reason: String(s.reason || '').slice(0, 300),
+      npmPackage: s.npmPackage || null,
+      validated: true,
+    }))
+    .filter(s => {
+      // Validate npm packages before including — strips hallucinated dependencies.
+      if (s.npmPackage) {
+        const valid = validateNpmPackage(s.npmPackage);
+        if (!valid) {
+          process.stderr.write(`[ai-review] Dropped suggestion "${s.title}" — npm package "${s.npmPackage}" not found\n`);
+          return false;
+        }
+      }
+      return true;
+    });
 }
 
 // ── Watchlist: load previous suggestions to detect recurring signals ─────────
@@ -416,17 +468,19 @@ async function main() {
 This is a reusable project template for a single developer who wants to work at the level of an expert team.
 The goal spans six domains: Product Thinking, Design, UX/Behavioural Science, Engineering, Data Science, AI Tooling.
 
-Your job is to identify specific, actionable, verifiable improvements.
+Your job is to identify specific, actionable, verifiable improvements. The
+response format is enforced automatically — do not describe or wrap JSON, just
+return substance.
 
-RULES FOR YOUR RESPONSE:
-1. Output ONLY valid JSON in this exact format:
-   {"suggestions": [{"id":"string","title":"string","area":"string","current":"string","proposed":"string","confidence":"high|medium|low","stability":"stable|emerging|experimental","effort":"low|medium|high","source":"string","reason":"string","npmPackage":"string or null"}]}
-2. Every suggestion must have a real source (named standard, official docs URL pattern, or npm package name).
-3. Do not suggest anything without a credible, verifiable basis.
-4. For npm package suggestions, include the exact package name in "npmPackage".
-5. "experimental" stability suggestions must have confidence "low" or "medium" only.
-6. Maximum 5 suggestions per topic call.
-7. Be specific about what file to change and what the change is.
+What makes a suggestion worth returning:
+- A real, named source: a standard, official documentation, or an npm package — never vendor hype or guesswork.
+- A credible, verifiable basis. If the evidence is thin, lower the confidence or omit the suggestion.
+- The exact file(s) to change where possible (.cursor/rules/*.mdc, AGENTS.md, .github/workflows/*, playbook.html, etc.).
+- "experimental" stability only ever paired with "low" or "medium" confidence.
+- Reason first, then commit to a confidence level. Quality over quantity: return at most 5, fewer if only a few are strong.
+
+Example of one strong suggestion:
+{"reason":"OpenSSF Scorecard is an industry-standard automated supply-chain risk check used by major OSS projects; this template pins actions by SHA but has no automated posture score.","current":"No automated supply-chain posture scoring in CI.","proposed":"Add the ossf/scorecard-action to a scheduled workflow and surface the score badge in README.","title":"Add OpenSSF Scorecard to CI","area":"Security","source":"OpenSSF Scorecard (github.com/ossf/scorecard)","confidence":"high","stability":"stable","effort":"medium","npmPackage":null}
 
 Current repo context (cached):
 ${context}`;
