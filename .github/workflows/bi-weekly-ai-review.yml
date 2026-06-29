@@ -112,7 +112,7 @@ jobs:
           ---
           Open [playbook.html](https://github.com/${GITHUB_REPOSITORY}/blob/main/playbook.html) → AI Suggestions tab for the interactive view.
 
-          _Generated automatically by the bi-weekly-ai-review workflow using Anthropic claude-sonnet-4-5._"
+          _Generated automatically by the bi-weekly-ai-review workflow using Anthropic claude-sonnet-4-6._"
 
           if [ "$DRY_RUN" = "true" ]; then
             echo "=== DRY RUN: ${COUNT} suggestion(s) ==="
