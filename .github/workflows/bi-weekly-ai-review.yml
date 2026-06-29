@@ -92,8 +92,23 @@ jobs:
             console.log(rows);
           ")
 
-          # Embed machine-readable data for playbook.html
-          DATA_JSON=$(cat ai-suggestions.json)
+          # Embed machine-readable data for playbook.html — only the fields it reads
+          # (runDate, reviewType, focusTopic, suggestions, watchlist). The full file also
+          # carries updatedWatchlist, which duplicates every suggestion and is never read here;
+          # embedding it pushed the issue body past GitHub's 65536-char limit. We also trim
+          # suggestions if the projection is still large, so the body can never exceed the cap.
+          DATA_JSON=$(node -e "
+            const fs = require('fs');
+            const d = JSON.parse(fs.readFileSync('./ai-suggestions.json', 'utf8'));
+            const slim = { runDate: d.runDate, reviewType: d.reviewType, suggestions: (d.suggestions || []).slice(), watchlist: d.watchlist || [] };
+            if (d.focusTopic) slim.focusTopic = d.focusTopic;
+            const BUDGET = 40000;
+            while (JSON.stringify(slim).length > BUDGET && slim.suggestions.length > 0) {
+              slim.suggestions.pop();
+              slim.truncated = true;
+            }
+            console.log(JSON.stringify(slim));
+          ")
 
           ISSUE_BODY="## AI guardrail review — ${RUN_DATE} (${REVIEW_TYPE})
 
