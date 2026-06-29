@@ -76,7 +76,7 @@ jobs:
 
           # Build markdown table from suggestions (fields escaped to prevent markdown/injection issues)
           TABLE=$(node -e "
-            const d = require('./ai-suggestions.json');
+            const d = JSON.parse(require('fs').readFileSync('./ai-suggestions.json', 'utf8'));
             const esc = v => String(v ?? '').replace(/\r?\n|\r/g, ' ').replace(/\|/g, '\\\\|').replace(/</g, '&lt;').replace(/>/g, '&gt;').slice(0, 200);
             const rows = d.suggestions.map(s =>
               '| ' + [s.area, s.title, s.confidence, s.stability, s.effort].map(esc).join(' | ') + ' |'
@@ -85,8 +85,8 @@ jobs:
           ")
 
           WATCHLIST=$(node -e "
-            const d = require('./ai-suggestions.json');
-            if (!d.watchlist || !d.watchlist.length) { console.log('_No watchlist items._'); return; }
+            const d = JSON.parse(require('fs').readFileSync('./ai-suggestions.json', 'utf8'));
+            if (!d.watchlist || !d.watchlist.length) { console.log('_No watchlist items._'); process.exit(0); }
             const esc = v => String(v ?? '').replace(/\r?\n|\r/g, ' ').replace(/\|/g, '\\\\|').replace(/</g, '&lt;').replace(/>/g, '&gt;').slice(0, 200);
             const rows = d.watchlist.map(s => '- **' + esc(s.title) + '** (' + esc(s.area) + ') — ' + esc(s.reason)).join('\n');
             console.log(rows);
