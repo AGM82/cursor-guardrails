@@ -414,6 +414,38 @@ function loadWatchlist() {
   }
 }
 
+// ── Decision ledger: human accept/decline history feeds back into the prompt ──
+// Accepted items are already implemented (never re-suggest them); declined items
+// were deliberately rejected (don't propose again without materially new evidence).
+
+function loadDecisions() {
+  if (!existsSync('.github/ai-review-decisions.json')) return [];
+  try {
+    const arr = JSON.parse(readFileSync('.github/ai-review-decisions.json', 'utf8'));
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
+}
+
+function formatDecisionsForPrompt(decisions) {
+  if (!decisions.length) return '';
+  const accepted = decisions.filter(d => d.decision === 'accepted');
+  const declined = decisions.filter(d => d.decision === 'declined');
+  // Bound the token cost: most recent 40 of each, newest last in the ledger.
+  const render = arr => arr.slice(-40)
+    .map(d => `- ${String(d.title || '').slice(0, 120)} (${String(d.area || 'n/a').slice(0, 40)})`)
+    .join('\n');
+  let out = '\n\nPRIOR DECISIONS — do not re-propose settled items:';
+  if (accepted.length) {
+    out += `\nALREADY IMPLEMENTED (accepted previously — these are done, never suggest them again):\n${render(accepted)}`;
+  }
+  if (declined.length) {
+    out += `\nDECLINED (do not propose again unless materially new evidence has emerged):\n${render(declined)}`;
+  }
+  return out;
+}
+
 function updateWatchlist(watchlist, newSuggestions) {
   const now = new Date().toISOString().slice(0, 10);
   const updated = [...watchlist];
@@ -463,6 +495,7 @@ async function main() {
 
   const context = buildContext();
   const watchlist = loadWatchlist();
+  const decisionsBlock = formatDecisionsForPrompt(loadDecisions());
 
   const SYSTEM_PROMPT = `You are an expert AI software development consultant reviewing the cursor-guardrails template.
 This is a reusable project template for a single developer who wants to work at the level of an expert team.
@@ -481,7 +514,7 @@ What makes a suggestion worth returning:
 
 Example of one strong suggestion:
 {"reason":"OpenSSF Scorecard is an industry-standard automated supply-chain risk check used by major OSS projects; this template pins actions by SHA but has no automated posture score.","current":"No automated supply-chain posture scoring in CI.","proposed":"Add the ossf/scorecard-action to a scheduled workflow and surface the score badge in README.","title":"Add OpenSSF Scorecard to CI","area":"Security","source":"OpenSSF Scorecard (github.com/ossf/scorecard)","confidence":"high","stability":"stable","effort":"medium","npmPackage":null}
-
+${decisionsBlock}
 Current repo context (cached):
 ${context}`;
 
