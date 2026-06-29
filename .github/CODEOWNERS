@@ -3,12 +3,12 @@
 # GitHub team or usernames before relying on this.
 
 # Default owner for everything not matched below.
-* @your-org/engineering
+* @AGM82
 
 # The fundamental guardrails deserve extra scrutiny — changes here affect every
 # project built from this template.
-/.cursor/ @your-org/eng-leads
-/.github/ @your-org/eng-leads
-/.husky/ @your-org/eng-leads
-/eslint.config.js @your-org/eng-leads
-/tsconfig.json @your-org/eng-leads
+/.cursor/ @AGM82
+/.github/ @AGM82
+/.husky/ @AGM82
+/eslint.config.js @AGM82
+/tsconfig.json @AGM82

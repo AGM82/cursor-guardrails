@@ -428,7 +428,7 @@ Write-Host "Commands bootstrapped. Now type /guardrail-upgrade in Cursor chat."<
     <div class="section-desc">Registry of all projects using cursor-guardrails. Stored locally in your browser. Add each project once.</div>
   </div>
   <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
-    <span style="font-size:13px; color:var(--text2);">Template version: <strong id="template-ver">1.0.0</strong></span>
+    <span style="font-size:13px; color:var(--text2);">Template version: <strong id="template-ver">1.1.0</strong></span>
     <div style="display:flex; gap:8px;">
       <button class="btn btn-ghost" onclick="exportProjects()">Export JSON</button>
       <button class="btn btn-ghost" onclick="importProjects()">Import JSON</button>
@@ -439,7 +439,7 @@ Write-Host "Commands bootstrapped. Now type /guardrail-upgrade in Cursor chat."<
   <div class="add-project-form" id="add-project-form">
     <div class="form-row">
       <div class="form-field"><label>Project name</label><input type="text" id="proj-name" placeholder="my-app"></div>
-      <div class="form-field"><label>Guardrail version</label><input type="text" id="proj-version" placeholder="1.0.0 (from .cursor/guardrail-version)"></div>
+      <div class="form-field"><label>Guardrail version</label><input type="text" id="proj-version" placeholder="1.1.0 (from .cursor/guardrail-version)"></div>
       <div class="form-field"><label>Layers active</label><input type="text" id="proj-layers" placeholder="0–7"></div>
       <div class="form-field"><label>Last upgraded</label><input type="date" id="proj-date"></div>
     </div>
@@ -529,7 +529,7 @@ Write-Host "Commands bootstrapped. Now type /guardrail-upgrade in Cursor chat."<
   </div>
   <div id="health-list">
     <div class="health-item" data-id="branch"><div class="health-check" onclick="toggleHealth(this)"></div><div class="health-label"><strong>Branch protection active on <code>main</code></strong><br><span style="color:var(--text3); font-size:12px;">Settings → Branches → ruleset with 3 required checks</span></div></div>
-    <div class="health-item" data-id="version"><div class="health-check" onclick="toggleHealth(this)"></div><div class="health-label"><strong>Guardrail version matches current template</strong><br><span style="color:var(--text3); font-size:12px;">Check <code>.cursor/guardrail-version</code> — should read <strong>1.1.0</strong></span></div></div>
+    <div class="health-item" data-id="version"><div class="health-check" onclick="toggleHealth(this)"></div><div class="health-label"><strong>Guardrail version matches current template</strong><br><span style="color:var(--text3); font-size:12px;">Check <code>.cursor/guardrail-version</code> — should read <strong id="health-version-label">1.1.0</strong></span></div></div>
     <div class="health-item" data-id="dependabot"><div class="health-check" onclick="toggleHealth(this)"></div><div class="health-label"><strong>No open Dependabot PRs failing CI</strong><br><span style="color:var(--text3); font-size:12px;">Review open PRs; close grouped PRs that fail — update individually</span></div></div>
     <div class="health-item" data-id="ci"><div class="health-check" onclick="toggleHealth(this)"></div><div class="health-label"><strong>CI last run on <code>main</code> is green</strong><br><span style="color:var(--text3); font-size:12px;">Check the Actions tab — all 3 jobs should be passing</span></div></div>
     <div class="health-item" data-id="context"><div class="health-check" onclick="toggleHealth(this)"></div><div class="health-label"><strong><code>90-project-context.mdc</code> has no &lt;PLACEHOLDER&gt;</strong><br><span style="color:var(--text3); font-size:12px;">Open the file and confirm all sections are filled in for this project</span></div></div>
@@ -566,23 +566,37 @@ Write-Host "Commands bootstrapped. Now type /guardrail-upgrade in Cursor chat."<
 // ─── State helpers ────────────────────────────────────────────────────────────
 const REPO = 'AGM82/cursor-guardrails';
 
-// Fetch live version from guardrail-layers.json so the sidebar never lags a version bump.
+// Fetch live version from guardrail-layers.json so no version number is ever hardcoded.
+let TEMPLATE_VERSION = '1.1.0'; // fallback; overwritten by manifest fetch below
 (async () => {
   try {
     const manifest = await fetch(
       `https://raw.githubusercontent.com/${REPO}/main/guardrail-layers.json`
     ).then(r => r.json());
     if (manifest && manifest.guardrailVersion) {
-      const el = document.getElementById('sidebar-version');
-      if (el) el.textContent = `v${manifest.guardrailVersion} · AGM82`;
+      const v = manifest.guardrailVersion;
+      TEMPLATE_VERSION = v;
+      const patch = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+      patch('sidebar-version', `v${v} · AGM82`);
+      patch('template-ver', v);
+      patch('health-version-label', v);
+      const projVerInput = document.getElementById('proj-version');
+      if (projVerInput) projVerInput.placeholder = `${v} (from .cursor/guardrail-version)`;
+      renderProjects();   // recalculate current/behind with updated TEMPLATE_VERSION
+      renderAllPrompts(); // re-render prompts so TEMPLATE_VER_PLACEHOLDER resolves
     }
   } catch { /* fall back to the hardcoded value */ }
 })();
 const API = 'https://api.github.com/repos/' + REPO;
-const TEMPLATE_VERSION = '1.0.0';
 
 function getPath() { return localStorage.getItem('templatePath') || ''; }
-function fillPath(str) { return str.replace(/TEMPLATE_PATH_PLACEHOLDER/g, getPath() || 'YOUR_TEMPLATE_PATH'); }
+// Replaces TEMPLATE_PATH_PLACEHOLDER and TEMPLATE_VER_PLACEHOLDER in prompt text at render time,
+// so neither the path nor the version ever needs to be hardcoded inside a prompt string.
+function fillPath(str) {
+  return str
+    .replace(/TEMPLATE_PATH_PLACEHOLDER/g, getPath() || 'YOUR_TEMPLATE_PATH')
+    .replace(/TEMPLATE_VER_PLACEHOLDER/g, TEMPLATE_VERSION);
+}
 
 function savePath() {
   const val = document.getElementById('template-path-input').value.trim();
@@ -1292,7 +1306,7 @@ const PROMPTS = [
   { category: 'Review', name: 'PR description review', desc: 'Ask the agent to review a draft PR description before posting.', command: `Review this pull request description before I post it:\n\n[PASTE PR TITLE AND BODY]\n\nCheck:\n1. Does the title follow Conventional Commits format?\n2. Does the body clearly explain what changed and why?\n3. Are security and data checkboxes appropriate?\n4. Are follow-ups noted?` },
   { category: 'Setup', name: 'Generate 90-project-context.mdc', desc: 'Ask the agent to draft the project context file from a description.', command: `Generate a filled-in .cursor/rules/90-project-context.mdc for the following project:\n\n[DESCRIBE THE PROJECT: what it does, tech stack, key files, domain terms, data classification]\n\nUse the template from TEMPLATE_PATH_PLACEHOLDER/.cursor/rules/90-project-context.mdc as the structure. Replace every <PLACEHOLDER> with real content.` },
   { category: 'Deps', name: 'Safe ESLint major bump check', desc: 'Ask the agent to verify ESLint plugin compatibility before accepting a major version upgrade.', command: `Before I upgrade ESLint to a new major version, check compatibility:\n\nCurrent eslint version: [CURRENT]\nProposed version: [NEW]\n\nCheck each plugin in package.json devDependencies:\n- eslint-plugin-jsx-a11y\n- eslint-plugin-security\n- typescript-eslint\n- @eslint/js\n\nFor each: does it declare peer compatibility with the new major version? Report COMPATIBLE / INCOMPATIBLE / UNKNOWN.` },
-  { category: 'Ops', name: 'Post-merge governance checklist', desc: 'Ask the agent to confirm all governance steps are in place after a merge.', command: `Run the post-merge governance checklist for this project:\n\n1. Is branch protection active on main with all 3 required CI checks?\n2. Is .cursor/guardrail-version present and matching the current template (1.1.0)?\n3. Are there any open Dependabot PRs? If so, are they passing CI?\n4. Is .env gitignored and not tracked?\n5. Did the last CI run on main pass all 3 jobs?\n\nReport each item as PASS / FAIL / UNKNOWN and suggest fixes for any FAIL.` },
+  { category: 'Ops', name: 'Post-merge governance checklist', desc: 'Ask the agent to confirm all governance steps are in place after a merge.', command: `Run the post-merge governance checklist for this project:\n\n1. Is branch protection active on main with all 3 required CI checks?\n2. Is .cursor/guardrail-version present and matching the current template (TEMPLATE_VER_PLACEHOLDER)?\n3. Are there any open Dependabot PRs? If so, are they passing CI?\n4. Is .env gitignored and not tracked?\n5. Did the last CI run on main pass all 3 jobs?\n\nReport each item as PASS / FAIL / UNKNOWN and suggest fixes for any FAIL.` },
 ];
 
 function renderAllPrompts() {

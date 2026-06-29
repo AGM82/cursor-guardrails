@@ -78,6 +78,8 @@ jobs:
     name: Dispatch to downstream repos
     runs-on: ubuntu-latest
     needs: release
+    permissions:
+      contents: read  # override workflow-level write — dispatch only calls the API, never writes the repo
     strategy:
       matrix:
         # Add downstream repos here as the ecosystem grows.
