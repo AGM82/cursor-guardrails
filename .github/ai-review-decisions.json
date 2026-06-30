@@ -1,1 +1,47 @@
-[]
+[
+  {
+    "id": "ai-tooling-fc1b6",
+    "title": "Define explicit autonomy boundaries for Cursor background agents",
+    "area": "AI Tooling",
+    "decision": "accepted",
+    "date": "2026-06-29",
+    "reviewIssue": "#24",
+    "guardrailVersion": "1.2.0"
+  },
+  {
+    "id": "ai-tooling-mt0sd",
+    "title": "Formalise audit hook log schema and add CI self-test",
+    "area": "Security",
+    "decision": "accepted",
+    "date": "2026-06-29",
+    "reviewIssue": "#24",
+    "guardrailVersion": "1.2.0"
+  },
+  {
+    "id": "ai-tooling-zylrl",
+    "title": "Add MCP server allowlist and prompt-injection guardrails",
+    "area": "AI Tooling",
+    "decision": "accepted",
+    "date": "2026-06-29",
+    "reviewIssue": "#24",
+    "guardrailVersion": "1.2.0"
+  },
+  {
+    "id": "ai-tooling-7znwd",
+    "title": "Enforce structured output schema in /review slash command",
+    "area": "AI Tooling",
+    "decision": "accepted",
+    "date": "2026-06-29",
+    "reviewIssue": "#24",
+    "guardrailVersion": "1.2.0"
+  },
+  {
+    "id": "ai-tooling-6clt5",
+    "title": "Enforce coverage thresholds in CI using @vitest/coverage-v8",
+    "area": "Engineering",
+    "decision": "accepted",
+    "date": "2026-06-29",
+    "reviewIssue": "#24",
+    "guardrailVersion": "1.2.0"
+  }
+]

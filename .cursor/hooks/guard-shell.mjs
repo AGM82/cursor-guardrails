@@ -29,10 +29,12 @@ const DENY = [
   { re: /:\s*\(\s*\)\s*\{\s*:\s*\|\s*:\s*&\s*\}\s*;/, msg: "fork bomb" },
   { re: /\bchmod\s+-R\s+0?777\s+\//i, msg: "world-writable permissions on a root path" },
   { re: /\bgit\s+push\b[^\n]*(--force(?!-with-lease)\b|\s-f\b)/i, msg: "force push (rewrites shared history)" },
+  { re: /\bnpm\s+publish\b/i, msg: "npm publish requires explicit human approval — run manually" },
 ];
 
 // Soft gates — let the human decide.
 const ASK = [
+  { re: /\bgit\s+push\b(?![^\n]*(--force(?!-with-lease)|\s-f\b))[^\n]*\b(main|master|release|production)\b/i, msg: "pushing directly to a protected branch" },
   { re: /\bgit\s+reset\s+--hard\b/i, msg: "git reset --hard discards uncommitted work" },
   { re: /\bgit\s+clean\s+-[a-z]*f/i, msg: "git clean -f deletes untracked files" },
   { re: /\b(curl|wget)\b[^\n]*\|\s*(sudo\s+)?(ba)?sh\b/i, msg: "piping a downloaded script straight into a shell" },

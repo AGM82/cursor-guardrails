@@ -57,6 +57,29 @@ make failing code pass, and do not disable a lint/type rule to silence an error
 - Use only what you can verify: files you have read, the user's instructions,
   and tool results. If information is missing, search, then ask.
 
+## Autonomy boundaries
+
+**Permitted autonomously** — no human gate needed:
+
+- Read any file or directory.
+- Run `typecheck`, `lint`, `test`, `build`, and other read-only checks.
+- Write or edit files inside `src/`, `.cursor/rules/`, `.cursor/commands/`, `docs/`.
+- Open draft PRs and push to feature branches.
+
+**Always require explicit human approval** — halt and ask before proceeding:
+
+- `git push` to `main` or any protected branch.
+- `npm publish` or any registry publish.
+- Destructive file operations (recursive delete, overwriting files outside `src/`).
+- Changes to `.env`, secrets, or environment variable configuration.
+- Disabling or weakening a CI job, hook, or lint rule.
+
+**Background agents additionally must:**
+
+- Write a plan to `.cursor/plans/` before any write outside `src/`.
+- Halt and surface the plan for approval before executing it.
+- Never commit directly to `main`.
+
 ## Hard stops
 
 - No secrets, credentials, or real client/personal data in source, logs, or

@@ -30,11 +30,13 @@ jobs:
       - name: Lint
         run: npm run lint
       - name: Test
-        run: npm run test
+        run: npm run test -- --coverage
       - name: Build
         run: npm run build
       - name: Dependency audit
         run: npm audit --audit-level=high
+      - name: Audit hook self-test
+        run: node .cursor/hooks/audit.mjs --self-test
 
   secret-scan:
     name: Secret scan (gitleaks)
