@@ -20,6 +20,7 @@ These are always present. There is no project where styling, accessible primitiv
 | Lucide React | Icon set; consistent with shadcn/ui | `lucide-react` |
 | Vite | Build tool and dev server | `@tailwindcss/vite` plugin; no `tailwind.config.*` needed for v4 |
 | Vitest + Testing Library | Unit and component tests | Coverage via `@vitest/coverage-v8`; threshold in `vite.config.ts` |
+| axe-core | Automated accessibility assertions in component tests | Use the `expectNoA11yViolations()` helper in `src/test/axe.ts` — calls axe-core directly rather than a Jest/Vitest wrapper package |
 
 ### Tailwind conventions
 
@@ -74,7 +75,7 @@ These have legitimate project-specific variation. State the override and the rea
 
 - Clarity, hierarchy, and restraint over decoration. Generous whitespace, a deliberate type scale, a constrained palette. No purple gradients, glassmorphism, or emoji-heavy UI by default.
 - Data-dense screens (schedules, claims, policy detail) prioritise scannable tables and information density over flourish.
-- Accessibility is enforced (`eslint-plugin-jsx-a11y`): label every control, maintain contrast, support keyboard interaction. Target WCAG 2.2 AA.
+- Accessibility is enforced statically (`eslint-plugin-jsx-a11y`) and at test time (`expectNoA11yViolations()` per `31-design.mdc`): label every control, maintain contrast, support keyboard interaction. Target WCAG 2.2 AA.
 
 ## Hard stops
 
