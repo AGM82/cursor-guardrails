@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { expectNoA11yViolations } from "@/test/axe";
 import {
   Card,
   CardAction,
@@ -53,5 +54,20 @@ describe("Card composition", () => {
     expect(screen.getByTestId("action")).toHaveAttribute("data-slot", "card-action");
     expect(screen.getByTestId("content")).toHaveAttribute("data-slot", "card-content");
     expect(screen.getByTestId("footer")).toHaveAttribute("data-slot", "card-footer");
+  });
+
+  it("has no axe accessibility violations", async () => {
+    const { container } = render(
+      <Card>
+        <CardHeader>
+          <CardTitle>Plan</CardTitle>
+          <CardDescription>Monthly subscription</CardDescription>
+          <CardAction>Edit</CardAction>
+        </CardHeader>
+        <CardContent>Body content</CardContent>
+        <CardFooter>Footer content</CardFooter>
+      </Card>,
+    );
+    await expectNoA11yViolations(container);
   });
 });

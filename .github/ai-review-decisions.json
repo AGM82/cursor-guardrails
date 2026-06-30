@@ -43,5 +43,54 @@
     "date": "2026-06-29",
     "reviewIssue": "#24",
     "guardrailVersion": "1.2.0"
+  },
+  {
+    "id": "design-6cfyy",
+    "title": "Enforce WCAG 2.1 AA contrast and automated axe checks on components",
+    "area": "Design",
+    "decision": "accepted",
+    "date": "2026-06-30",
+    "reviewIssue": "#24",
+    "guardrailVersion": "1.3.0",
+    "note": "Implemented with axe-core called directly via a first-party src/test/axe.ts helper, not jest-axe — this project uses Vitest, and a thin wrapper of uncertain maintenance was avoided per 40-tooling-supply-chain.mdc (prefer extending the existing toolchain)."
+  },
+  {
+    "id": "design-fe0ia",
+    "title": "Add prefers-reduced-motion and animation best-practice rules to 31-design.mdc",
+    "area": "Design",
+    "decision": "accepted",
+    "date": "2026-06-30",
+    "reviewIssue": "#24",
+    "guardrailVersion": "1.3.0",
+    "note": "Already satisfied by the Tailwind v4 migration (PR #26) — the 'Motion and animation' section in 31-design.mdc already covers prefers-reduced-motion. No further change needed."
+  },
+  {
+    "id": "design-8wdx0",
+    "title": "Add CSS Cascade Layers architecture guidance to 31-design.mdc",
+    "area": "Design",
+    "decision": "accepted",
+    "date": "2026-06-30",
+    "reviewIssue": "#24",
+    "guardrailVersion": "1.3.0"
+  },
+  {
+    "id": "design-6auao",
+    "title": "Define and enforce a design token system via tailwind.config.ts",
+    "area": "Design",
+    "decision": "accepted",
+    "date": "2026-06-30",
+    "reviewIssue": "#24",
+    "guardrailVersion": "1.3.0",
+    "note": "Adapted: Tailwind v4 (already adopted in PR #26) is CSS-first and has no tailwind.config.ts. The rule instead requires tokens to be declared as CSS custom properties in src/index.css, which is where this project's token system already lives."
+  },
+  {
+    "id": "design-5q19e",
+    "title": "Add container query guidance and Tailwind plugin to 31-design.mdc",
+    "area": "Design",
+    "decision": "accepted",
+    "date": "2026-06-30",
+    "reviewIssue": "#24",
+    "guardrailVersion": "1.3.0",
+    "note": "Adapted: Tailwind v4 ships container queries in core, so @tailwindcss/container-queries was not installed — adding it would be a redundant dependency. The rule documents the native @container/@sm:/@md: syntax instead."
   }
 ]
