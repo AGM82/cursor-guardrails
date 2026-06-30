@@ -55,15 +55,25 @@ jobs:
       # Scheduled runs carry no `inputs` — without this, the quarterly security
       # cron (line 9) would silently fall through to a second biweekly review.
       # github.event.schedule holds the exact cron string that fired the run.
+      #
+      # github/inputs context values are passed via `env:` and read as quoted
+      # shell variables rather than interpolated directly into `run:` — even
+      # though these particular values are constrained (a `type: choice` enum
+      # and a fixed cron string), interpolating `${{ }}` straight into a shell
+      # script is a generic injection pattern Semgrep's run-shell-injection
+      # rule flags on sight, regardless of how trusted the actual value is.
       - name: Determine review type
         id: determine_type
+        env:
+          INPUT_REVIEW_TYPE: ${{ inputs.review_type }}
+          EVENT_SCHEDULE: ${{ github.event.schedule }}
         run: |
-          if [ -n "${{ inputs.review_type }}" ]; then
-            echo "review_type=${{ inputs.review_type }}" >> $GITHUB_OUTPUT
-          elif [ "${{ github.event.schedule }}" = "0 9 1-7 1,4,7,10 1" ]; then
-            echo "review_type=security" >> $GITHUB_OUTPUT
+          if [ -n "$INPUT_REVIEW_TYPE" ]; then
+            echo "review_type=$INPUT_REVIEW_TYPE" >> "$GITHUB_OUTPUT"
+          elif [ "$EVENT_SCHEDULE" = "0 9 1-7 1,4,7,10 1" ]; then
+            echo "review_type=security" >> "$GITHUB_OUTPUT"
           else
-            echo "review_type=biweekly" >> $GITHUB_OUTPUT
+            echo "review_type=biweekly" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Run AI review
