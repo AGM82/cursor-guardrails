@@ -16,5 +16,15 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
     css: false,
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "lcov"],
+      // Start conservative; raise thresholds as the codebase grows.
+      thresholds: {
+        lines: 80,
+        functions: 80,
+        branches: 70,
+      },
+    },
   },
 });
