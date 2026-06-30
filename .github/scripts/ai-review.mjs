@@ -90,7 +90,7 @@ function buildContext() {
   //
   // Safety valve: if the total rule-file content ever exceeds RULE_CHAR_BUDGET,
   // lower-priority files are dropped whole rather than silently amputated.
-  // Today's total is ~60k chars — well under the 100k budget.
+  // Today's total is ~47k chars across 12 rule files — well under the 100k budget.
   const RULE_CHAR_BUDGET = 100_000;
   const RULE_FILES_PRIORITY = [
     '.cursor/rules/00-core.mdc',
@@ -99,6 +99,9 @@ function buildContext() {
     '.cursor/rules/31-design.mdc',
     '.cursor/rules/50-ai-tooling.mdc',
     '.cursor/rules/40-tooling-supply-chain.mdc',
+    '.cursor/rules/60-backend-api.mdc',
+    '.cursor/rules/61-database.mdc',
+    '.cursor/rules/62-deployment-observability.mdc',
     '.cursor/rules/32-ux-behavioural.mdc',
     '.cursor/rules/33-data-science.mdc',
     '.cursor/rules/20-commits.mdc',
@@ -139,7 +142,7 @@ Dependencies: ${deps}
 AGENTS.MD (first 40 lines):
 ${agentsMd}
 
-RULE FILES (first 20 lines each):
+RULE FILES (full content, budget-limited — see RULE_CHAR_BUDGET):
 ${ruleFiles}
 
 HOOKS (.cursor/hooks.json):
@@ -267,6 +270,21 @@ Identify improvements in:
 3. Secret management patterns missing
 4. New security scanning tools that complement gitleaks and Semgrep
 5. AI-specific attack vectors (prompt injection, data exfiltration via agent) not yet guarded`,
+    },
+    {
+      id: 'backend-data-deploy',
+      label: 'Backend, Database & Deployment',
+      question: `Review the backend, database, and deployment/observability guardrails in this template
+(60-backend-api.mdc, 61-database.mdc, 62-deployment-observability.mdc — full content is in context).
+The demo app in src/ has no backend yet; these three files are deliberately framework-agnostic and
+only activate by glob once a project actually adds a server, database, or deploy pipeline.
+Identify improvements in:
+1. Gaps in API design conventions (60-backend-api.mdc) against current REST/contract-first best practices
+2. Gaps in database/schema/query conventions (61-database.mdc) — migrations, indexing, transactions, N+1
+3. Gaps in deployment/observability conventions (62-deployment-observability.mdc) — containers, health checks, structured logging, rollback
+4. Whether content should move between these three files or be split further as the template matures
+5. A CI/CD check the template could add that exercises these guardrails once a project has a backend
+Do NOT re-propose anything already covered in these three files.`,
     },
   ],
   cursor: [

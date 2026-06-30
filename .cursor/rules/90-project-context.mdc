@@ -20,6 +20,8 @@ A reusable Cursor project template — not a product app. It ships guardrails (r
 
 Default scaffold: React + TypeScript + Vite + Tailwind CSS v4 + shadcn/ui + Lucide React + Vitest + ESLint + Prettier + Husky. See `30-react-stack.mdc` for the full three-tier stack (foundational / functional / swappable) and the override process.
 
+No backend, database, or deployment pipeline exists in this repo today — it is a frontend-only demo scaffold. `60-backend-api.mdc`, `61-database.mdc`, and `62-deployment-observability.mdc` are installed and glob-scoped so they activate automatically the moment a real project (this one or a child project started from it) adds a server, schema, or deploy step; until then they have no effect.
+
 ## Canonical files (reference these — do not reinvent)
 
 - Component: `src/components/Greeting.tsx`

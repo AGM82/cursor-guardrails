@@ -9,18 +9,25 @@ scoped rules live in `.cursor/rules/*.mdc`; this file is the always-on summary.
 This template enables a single developer to operate at expert-team level across
 six domains. Apply the relevant domain rules whenever the work touches that area:
 
-| Domain                         | Rule file                     |
-| ------------------------------ | ----------------------------- |
-| Engineering (core)             | `00-core.mdc`                 |
-| Security & privacy             | `10-security-popia.mdc`       |
-| Commits                        | `20-commits.mdc`              |
-| Frontend stack                 | `30-react-stack.mdc`          |
-| **Visual & graphic design**    | `31-design.mdc`               |
-| **UX & behavioural science**   | `32-ux-behavioural.mdc`       |
-| **Data science & measurement** | `33-data-science.mdc`         |
-| Tooling & supply chain         | `40-tooling-supply-chain.mdc` |
-| **AI tool evaluation**         | `50-ai-tooling.mdc`           |
-| Project specifics              | `90-project-context.mdc`      |
+| Domain                         | Rule file                         |
+| ------------------------------ | --------------------------------- |
+| Engineering (core)             | `00-core.mdc`                     |
+| Security & privacy             | `10-security-popia.mdc`           |
+| Commits                        | `20-commits.mdc`                  |
+| Frontend stack                 | `30-react-stack.mdc`              |
+| **Visual & graphic design**    | `31-design.mdc`                   |
+| **UX & behavioural science**   | `32-ux-behavioural.mdc`           |
+| **Data science & measurement** | `33-data-science.mdc`             |
+| Tooling & supply chain         | `40-tooling-supply-chain.mdc`     |
+| **AI tool evaluation**         | `50-ai-tooling.mdc`               |
+| Backend & API design           | `60-backend-api.mdc`              |
+| Database & data access         | `61-database.mdc`                 |
+| Deployment & observability     | `62-deployment-observability.mdc` |
+| Project specifics              | `90-project-context.mdc`          |
+
+The Backend/Database/Deployment rules are glob-scoped and inert until a project
+actually adds a server, database, or deploy pipeline — they cost nothing to keep
+installed even in the current frontend-only demo scaffold.
 
 **Tool philosophy**: use the best available AI agent for the task. Cursor is the
 current primary coding agent. Evaluate new tools using the framework in
@@ -99,6 +106,9 @@ make failing code pass, and do not disable a lint/type rule to silence an error
 - Data science & measurement: `.cursor/rules/33-data-science.mdc`
 - Tooling & supply chain: `.cursor/rules/40-tooling-supply-chain.mdc`
 - AI tool evaluation: `.cursor/rules/50-ai-tooling.mdc`
+- Backend & API design: `.cursor/rules/60-backend-api.mdc`
+- Database & data access: `.cursor/rules/61-database.mdc`
+- Deployment & observability: `.cursor/rules/62-deployment-observability.mdc`
 - Project specifics (fill this in): `.cursor/rules/90-project-context.mdc`
 - Playbook dashboard: `playbook.html` (hosted on Cloudflare Pages)
 
