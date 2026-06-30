@@ -83,24 +83,40 @@ function buildContext() {
     .map(([k, v]) => `${k}@${v}`)
     .join(', ');
 
-  const ruleFiles = [
+  // Rule files are sent in full so the model sees every convention, not just the
+  // first 20 lines. This prevents it from re-proposing things that are already
+  // encoded past the old truncation point (e.g. prefers-reduced-motion in
+  // 31-design.mdc, or the Tailwind/Zod conventions in 30-react-stack.mdc).
+  //
+  // Safety valve: if the total rule-file content ever exceeds RULE_CHAR_BUDGET,
+  // lower-priority files are dropped whole rather than silently amputated.
+  // Today's total is ~60k chars — well under the 100k budget.
+  const RULE_CHAR_BUDGET = 100_000;
+  const RULE_FILES_PRIORITY = [
     '.cursor/rules/00-core.mdc',
     '.cursor/rules/10-security-popia.mdc',
-    '.cursor/rules/20-commits.mdc',
     '.cursor/rules/30-react-stack.mdc',
     '.cursor/rules/31-design.mdc',
+    '.cursor/rules/50-ai-tooling.mdc',
+    '.cursor/rules/40-tooling-supply-chain.mdc',
     '.cursor/rules/32-ux-behavioural.mdc',
     '.cursor/rules/33-data-science.mdc',
-    '.cursor/rules/40-tooling-supply-chain.mdc',
-    '.cursor/rules/50-ai-tooling.mdc',
-  ]
+    '.cursor/rules/20-commits.mdc',
+  ];
+  let ruleCharCount = 0;
+  const ruleFiles = RULE_FILES_PRIORITY
     .filter(existsSync)
-    .map(f => {
+    .reduce((acc, f) => {
       const name = f.split('/').pop();
-      const lines = readFileSync(f, 'utf8').split('\n');
-      // First 20 lines captures the intent without sending full file.
-      return `--- ${name} ---\n${lines.slice(0, 20).join('\n')}`;
-    })
+      const content = readFileSync(f, 'utf8');
+      if (ruleCharCount + content.length > RULE_CHAR_BUDGET) {
+        process.stderr.write(`[ai-review] Rule budget reached — omitting ${name} (${content.length} chars)\n`);
+        return acc;
+      }
+      ruleCharCount += content.length;
+      acc.push(`--- ${name} ---\n${content}`);
+      return acc;
+    }, [])
     .join('\n\n');
 
   const hooksJson = safeRead('.cursor/hooks.json', 30);
@@ -195,23 +211,29 @@ Apply a high bar for replacements.`,
       id: 'engineering',
       label: 'Engineering',
       question: `Review the engineering quality guardrails in this template.
+The stack is React + TypeScript (strict) + Tailwind CSS v4 + shadcn/ui + Lucide React + Vitest.
+Functional tier (standardised but installed on first use): Zod, React Hook Form, TanStack Query.
 Identify improvements in:
-1. ESLint rules or plugins that should be added (security, complexity, accessibility)
-2. TypeScript strict options not yet enabled
-3. New CI/CD security practices (supply chain, provenance, SLSA)
-4. Testing patterns missing for AI-generated code
-5. Performance monitoring or budget enforcement missing from CI`,
+1. ESLint rules or plugins not yet present that would catch real bugs (security, complexity, accessibility)
+2. TypeScript strict options not yet enabled (check tsconfig.json against the full strict checklist)
+3. New CI/CD security practices (supply chain, provenance, SLSA) not yet in ci.yml
+4. Testing patterns missing — particularly for AI-generated code and component accessibility
+5. Coverage thresholds or performance budget enforcement missing from CI
+6. Gaps in how the Zod/RHF/TanStack Query conventions are enforced once a project adds them`,
     },
     {
       id: 'design',
       label: 'Design',
-      question: `Review the design guardrails in this template (31-design.mdc if present).
+      question: `Review the design guardrails in this template.
+The full 31-design.mdc is included in context — read it carefully before proposing anything.
+The stack uses Tailwind CSS v4 (utility classes, @theme tokens, no tailwind.config.ts needed) and shadcn/ui primitives.
 Identify improvements in:
-1. Design system principles or tokens not yet enforced
-2. Accessibility rules missing (WCAG, aria, contrast)
-3. CSS architecture patterns the community has adopted (container queries, cascade layers)
-4. Design-to-code tooling that would benefit a single developer
-5. Motion and animation best practices missing`,
+1. Design token conventions missing from 31-design.mdc given Tailwind v4's @theme approach
+2. Accessibility rules not yet in 31-design.mdc — check against WCAG 2.2 AA and ARIA APG patterns
+3. CSS architecture patterns the community has adopted that are NOT already in 31-design.mdc
+4. Tailwind-specific design conventions (class ordering, arbitrary value policy, dark mode) not yet encoded
+5. Gaps in component-level accessibility testing requirements (e.g. axe assertions in Vitest tests)
+Do NOT re-propose anything already covered in 31-design.mdc.`,
     },
     {
       id: 'ux-behavioural',

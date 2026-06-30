@@ -18,7 +18,7 @@ A reusable Cursor project template — not a product app. It ships guardrails (r
 
 ## Tech stack
 
-Default scaffold: React + TypeScript + Vite + Vitest + ESLint + Prettier + Husky. No Tailwind/shadcn in the demo app yet — those conventions live in `30-react-stack.mdc` for projects that add them.
+Default scaffold: React + TypeScript + Vite + Tailwind CSS v4 + shadcn/ui + Lucide React + Vitest + ESLint + Prettier + Husky. See `30-react-stack.mdc` for the full three-tier stack (foundational / functional / swappable) and the override process.
 
 ## Canonical files (reference these — do not reinvent)
 
