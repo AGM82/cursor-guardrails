@@ -233,13 +233,13 @@ Human steps — confirm these are done before declaring the upgrade complete:
 ## Record upgrade version
 
 After completing all approved layers, write the applied template version to this project.
-The current template version is in `TEMPLATE_PATH/.cursor/guardrail-version` (also in `TEMPLATE_PATH/guardrail-layers.json` → `guardrailVersion`):
+Read the current template version from `TEMPLATE_PATH/.cursor/guardrail-version` (also mirrored in
+`TEMPLATE_PATH/guardrail-layers.json` → `guardrailVersion`) — do not hardcode a version number, it will
+always go stale. Write that exact value into this project's `.cursor/guardrail-version`:
 
 ```
-echo 1.1.0 > .cursor/guardrail-version
+cat TEMPLATE_PATH/.cursor/guardrail-version > .cursor/guardrail-version
 ```
-
-(Replace `1.1.0` with the version from `TEMPLATE_PATH/.cursor/guardrail-version`.)
 
 Add `.cursor/guardrail-version` to this project's git tracking if it is not already tracked:
 

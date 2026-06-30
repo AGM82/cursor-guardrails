@@ -35,6 +35,8 @@ jobs:
         run: npm run build
       - name: Dependency audit
         run: npm audit --audit-level=high
+      - name: Check guardrail manifest drift
+        run: node .github/scripts/check-manifest-drift.mjs
 
   secret-scan:
     name: Secret scan (gitleaks)

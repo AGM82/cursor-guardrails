@@ -1,7 +1,7 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "guardrailVersion": "1.2.0",
-  "description": "Canonical adoption-layer model and risk-tier mapping for the cursor-guardrails template. Single source of truth for /guardrail-upgrade and downstream governance tools such as Throughline. Do not edit by hand — changes must be deliberate and version-bumped.",
+  "description": "Canonical adoption-layer model and risk-tier mapping for the cursor-guardrails template. Single source of truth for /guardrail-upgrade and downstream governance tools such as Throughline. Do not edit by hand — changes must be deliberate and version-bumped. Verified against the actual file tree by .github/scripts/check-manifest-drift.mjs in CI.",
   "source": "https://github.com/AGM82/cursor-guardrails",
   "lastUpdated": "2026-06-30",
   "adoptionLayers": {
@@ -28,6 +28,8 @@
         ".cursor/hooks/guard-shell.mjs",
         ".cursor/hooks/guard-read.mjs",
         ".cursor/hooks/audit.mjs",
+        ".cursor/mcp.json",
+        ".cursorignore",
         "AGENTS.md"
       ],
       "domains": [
@@ -110,6 +112,11 @@
       "schemaVersion": 1,
       "date": "2026-06-26",
       "note": "Initial publication. Encodes 7 adoption layers and Low/Medium/High tier mapping. Introduces 10 rule files including four new holistic domains (31-design, 32-ux-behavioural, 33-data-science, 50-ai-tooling)."
+    },
+    {
+      "schemaVersion": 2,
+      "date": "2026-06-30",
+      "note": "Adds .cursor/mcp.json and .cursorignore to Layer 1 — both already existed in the template and were already listed in guardrail-upgrade.md, but had drifted out of this manifest. Adds the check-manifest-drift.mjs CI guard so Layer 1 cannot silently go out of date again."
     }
   ]
 }
