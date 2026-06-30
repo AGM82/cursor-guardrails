@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "guardrailVersion": "1.2.0",
+  "guardrailVersion": "1.2.1",
   "description": "Canonical adoption-layer model and risk-tier mapping for the cursor-guardrails template. Single source of truth for /guardrail-upgrade and downstream governance tools such as Throughline. Do not edit by hand — changes must be deliberate and version-bumped. Verified against the actual file tree by .github/scripts/check-manifest-drift.mjs in CI.",
   "source": "https://github.com/AGM82/cursor-guardrails",
   "lastUpdated": "2026-06-30",
@@ -19,6 +19,9 @@
         ".cursor/rules/33-data-science.mdc",
         ".cursor/rules/40-tooling-supply-chain.mdc",
         ".cursor/rules/50-ai-tooling.mdc",
+        ".cursor/rules/60-backend-api.mdc",
+        ".cursor/rules/61-database.mdc",
+        ".cursor/rules/62-deployment-observability.mdc",
         ".cursor/rules/90-project-context.mdc",
         ".cursor/commands/review.md",
         ".cursor/commands/pr.md",
@@ -41,7 +44,10 @@
         "UX",
         "DataScience",
         "Tooling",
-        "AITooling"
+        "AITooling",
+        "Backend",
+        "Database",
+        "Deployment"
       ]
     },
     "2": {
@@ -117,6 +123,11 @@
       "schemaVersion": 2,
       "date": "2026-06-30",
       "note": "Adds .cursor/mcp.json and .cursorignore to Layer 1 — both already existed in the template and were already listed in guardrail-upgrade.md, but had drifted out of this manifest. Adds the check-manifest-drift.mjs CI guard so Layer 1 cannot silently go out of date again."
+    },
+    {
+      "schemaVersion": 2,
+      "date": "2026-06-30",
+      "note": "Adds three new rule files to Layer 1 — 60-backend-api.mdc, 61-database.mdc, 62-deployment-observability.mdc — and three new domains (Backend, Database, Deployment), closing the gap where the template had no guidance once a project adds a server, database, or deployment pipeline. guardrailVersion patch bump per the new-rule-file convention."
     }
   ]
 }
