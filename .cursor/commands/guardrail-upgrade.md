@@ -80,6 +80,9 @@ Read the following files from TEMPLATE_PATH and from THIS project. For each file
 - `.cursor/rules/33-data-science.mdc`
 - `.cursor/rules/40-tooling-supply-chain.mdc`
 - `.cursor/rules/50-ai-tooling.mdc`
+- `.cursor/rules/60-backend-api.mdc` (only relevant once the project has a server/API — safe to add regardless, it is glob-scoped and inert otherwise)
+- `.cursor/rules/61-database.mdc` (only relevant once the project has a database)
+- `.cursor/rules/62-deployment-observability.mdc` (only relevant once the project deploys somewhere beyond local)
 - `.cursor/rules/90-project-context.mdc`
 - `.cursor/commands/review.md`
 - `.cursor/commands/pr.md`
