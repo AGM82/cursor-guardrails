@@ -436,6 +436,19 @@ function loadWatchlist() {
   }
 }
 
+// Surfaces signals that have recurred across runs without being accepted or
+// declined, so the model can escalate them explicitly rather than the
+// cross-run tracker silently having no effect on what gets proposed next.
+function formatWatchlistForPrompt(watchlist) {
+  const recurring = watchlist.filter(w => (w.seenCount || 1) >= 2);
+  if (!recurring.length) return '';
+  const render = recurring
+    .slice(-30)
+    .map(w => `- ${String(w.title || '').slice(0, 120)} (${String(w.area || w.topic || 'n/a').slice(0, 40)}) — seen ${w.seenCount}x, last ${w.lastSeen}, confidence now ${w.confidence}`)
+    .join('\n');
+  return `\n\nWATCHLIST — low-confidence signals seen in multiple prior runs (a human has neither accepted nor declined these). If the evidence is now stronger, consider proposing it as a real suggestion at a higher confidence; do not just resubmit it unchanged:\n${render}`;
+}
+
 // ── Decision ledger: human accept/decline history feeds back into the prompt ──
 // Accepted items are already implemented (never re-suggest them); declined items
 // were deliberately rejected (don't propose again without materially new evidence).
@@ -518,6 +531,7 @@ async function main() {
   const context = buildContext();
   const watchlist = loadWatchlist();
   const decisionsBlock = formatDecisionsForPrompt(loadDecisions());
+  const watchlistBlock = formatWatchlistForPrompt(watchlist);
 
   const SYSTEM_PROMPT = `You are an expert AI software development consultant reviewing the cursor-guardrails template.
 This is a reusable project template for a single developer who wants to work at the level of an expert team.
@@ -536,7 +550,7 @@ What makes a suggestion worth returning:
 
 Example of one strong suggestion:
 {"reason":"OpenSSF Scorecard is an industry-standard automated supply-chain risk check used by major OSS projects; this template pins actions by SHA but has no automated posture score.","current":"No automated supply-chain posture scoring in CI.","proposed":"Add the ossf/scorecard-action to a scheduled workflow and surface the score badge in README.","title":"Add OpenSSF Scorecard to CI","area":"Security","source":"OpenSSF Scorecard (github.com/ossf/scorecard)","confidence":"high","stability":"stable","effort":"medium","npmPackage":null}
-${decisionsBlock}
+${decisionsBlock}${watchlistBlock}
 Current repo context (cached):
 ${context}`;
 

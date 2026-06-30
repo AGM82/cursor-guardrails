@@ -129,8 +129,12 @@ ${AUTO_PR_SECTION}
 _Updated by weekly-guardrail-review workflow._
 EOF
 )
+  # Edit the body (not just comment) so the machine-readable
+  # <!-- guardrail-review-data --> block playbook.html's loadFindings()
+  # reads is always current — a comment alone leaves issue.body stale.
+  gh issue edit "$EXISTING" --repo "$REPO" --body "$ISSUE_BODY"
   gh issue comment "$EXISTING" --repo "$REPO" --body "$COMMENT_BODY"
-  echo "Appended to existing issue #$EXISTING."
+  echo "Updated and appended to existing issue #$EXISTING."
 else
   gh issue create \
     --repo "$REPO" \
