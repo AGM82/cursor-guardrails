@@ -52,7 +52,7 @@ Prose rules are _advisory_ — an agent can drift from them after a few turns. L
 6. Commit. Husky, commitlint, and the Cursor hooks are active from the first commit.
 7. On GitHub: enable branch protection on `main` (see **Branch protection** below).
 
-This template ships a minimal working React + TypeScript + Vite app (`index.html`, `src/`) with an example component, a pure-function utility, and tests, so `dev`/`build`/`test` work out of the box. Replace it with your real application.
+This template ships a minimal working React + TypeScript + Vite + Tailwind CSS v4 + shadcn/ui app (`index.html`, `src/`) with an example component, a utility, and tests, so `dev`/`build`/`test` work out of the box. The canonical component (`src/components/Greeting.tsx`) demonstrates the foundational tier in practice. Replace the demo with your real application.
 
 ## Existing project? Start here
 

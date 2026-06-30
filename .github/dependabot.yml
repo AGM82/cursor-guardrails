@@ -16,6 +16,20 @@ updates:
         patterns:
           - "react"
           - "react-dom"
+      # Foundational UI stack — bump as a unit so Tailwind, shadcn, and Radix stay compatible.
+      frontend-stack:
+        patterns:
+          - "tailwindcss"
+          - "@tailwindcss/vite"
+          - "tw-animate-css"
+          - "shadcn"
+          - "@base-ui/react"
+          - "lucide-react"
+          - "class-variance-authority"
+          - "clsx"
+          - "tailwind-merge"
+          - "prettier-plugin-tailwindcss"
+          - "@fontsource-variable/*"
     ignore:
       # ESLint major versions frequently break plugins (e.g. eslint-plugin-jsx-a11y
       # caps at eslint@^9). Require an explicit compatibility check before merging.
