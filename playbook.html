@@ -326,22 +326,26 @@
 
     <div id="tab-new-project" role="tabpanel">
       <h3>Start a new project from the template</h3>
+      <p style="font-size:12px; color:var(--text2); background:var(--surface2); border-radius:var(--radius-sm); padding:10px 12px; margin-bottom:14px;"><strong>Before you start:</strong> you need a free <a href="https://github.com/signup" target="_blank">GitHub account</a> and <a href="https://cursor.com/downloads" target="_blank">Cursor</a> installed. No other software is required — Cursor can clone repositories for you without a separate Git install.</p>
       <table>
         <thead><tr><th>#</th><th>Step</th><th>Detail</th></tr></thead>
         <tbody>
           <tr><td>1</td><td><strong>Use this template</strong></td><td>Go to <a href="https://github.com/AGM82/cursor-guardrails" target="_blank">github.com/AGM82/cursor-guardrails</a> → <strong>Use this template</strong> → Create a new repository</td></tr>
-          <tr><td>2</td><td><strong>Open in Cursor</strong></td><td>File → Open Folder → pick the cloned repo → Trust the workspace</td></tr>
-          <tr><td>3</td><td><strong>Match Node version</strong></td><td><code>nvm use</code> (or install Node 20 from nvmrc)</td></tr>
-          <tr><td>4</td><td><strong>Install</strong></td><td><code>npm install</code> — installs tools and activates Git hooks</td></tr>
-          <tr><td>5</td><td><strong>Verify</strong></td><td><code>npm run typecheck &amp;&amp; npm run lint &amp;&amp; npm run test</code> — CI also runs <code>test -- --coverage</code>; confirm no threshold violations before finishing</td></tr>
-          <tr><td>6</td><td><strong>Fill in context</strong></td><td>Open <code>.cursor/rules/90-project-context.mdc</code> and replace every &lt;PLACEHOLDER&gt;</td></tr>
-          <tr><td>7</td><td><strong>Enable branch protection</strong></td><td>GitHub Settings → Branches → Add branch ruleset — require all 3 CI checks on <code>main</code></td></tr>
+          <tr><td>2</td><td><strong>Clone it to your computer</strong></td><td>In Cursor: Command Palette (<code>Ctrl+Shift+P</code> / <code>Cmd+Shift+P</code>) → <code>Git: Clone</code> → paste your new repo's URL → pick a folder. (Or, if you're comfortable with a terminal: <code>git clone &lt;url&gt;</code>.) This downloads the repo from GitHub onto your machine — you can't skip this step.</td></tr>
+          <tr><td>3</td><td><strong>Open in Cursor</strong></td><td>File → Open Folder → pick the folder you just cloned → Trust the workspace</td></tr>
+          <tr><td>4</td><td><strong>Match Node version</strong></td><td>Node.js is the runtime this project's tools (linting, tests, build) run on. Open a terminal (Terminal → New Terminal) and run <code>nvm use</code> if you have <code>nvm</code> installed — otherwise, install <a href="https://nodejs.org" target="_blank">Node 20 LTS from nodejs.org</a> directly and skip this command.</td></tr>
+          <tr><td>5</td><td><strong>Install</strong></td><td><code>npm install</code> in the same terminal — installs tools and activates Git hooks</td></tr>
+          <tr><td>6</td><td><strong>Verify</strong></td><td>Run <code>npm run typecheck</code>, then <code>npm run lint</code>, then <code>npm run test</code>, one at a time (on Windows, plain PowerShell can't chain them with <code>&amp;&amp;</code> — PowerShell 7+ can). CI also runs <code>test -- --coverage</code>; if anything fails, ask the Cursor agent to fix it before continuing.</td></tr>
+          <tr><td>7</td><td><strong>Fill in context</strong></td><td>Open <code>.cursor/rules/90-project-context.mdc</code> and replace every &lt;PLACEHOLDER&gt; — or use the "Generate 90-project-context.mdc" prompt in the <strong>Prompt Library</strong> tab and let the AI draft it from a plain description of your project</td></tr>
+          <tr><td>8</td><td><strong>Commit and push</strong></td><td>Commit your changes and push to GitHub — this triggers the first CI run, which step 9 needs to have completed at least once</td></tr>
+          <tr><td>9</td><td><strong>Enable branch protection</strong></td><td>Wait for the CI run from step 8 to go green under the <strong>Actions</strong> tab (its 3 checks won't be selectable until then), then GitHub Settings → Branches → Add branch ruleset → require all 3 checks on <code>main</code>. Note: on a free personal GitHub account, rulesets only enforce on <strong>public</strong> repositories.</td></tr>
         </tbody>
       </table>
     </div>
 
     <div id="tab-existing-project" role="tabpanel" style="display:none;">
       <h3>Adopt on an existing project — Layer order</h3>
+      <p style="font-size:12px; color:var(--text2); background:var(--surface2); border-radius:var(--radius-sm); padding:10px 12px; margin-bottom:14px;">The actual thing you do is scroll down and paste the <strong>Bootstrap prompt</strong> below into a new Cursor Agent chat, opened inside the existing project you want to upgrade. The layer table underneath is just a reference — it shows what the AI will do and ask your permission for at each step.</p>
       <table>
         <thead><tr><th>Layer</th><th>What happens</th><th>Risk</th></tr></thead>
         <tbody>
@@ -360,6 +364,8 @@
 
       <h3>Bootstrap prompt — paste into Cursor Agent chat</h3>
       <p>Copy this block and paste it into a new Cursor Agent chat in your existing project. It works day zero — nothing needs to be in place first.</p>
+      <p style="font-size:12px; color:var(--text2); background:var(--surface2); border-radius:var(--radius-sm); padding:10px 12px; margin-bottom:14px;"><strong>Before you paste it:</strong> fill in the <strong>"Template path on this machine"</strong> field at the top of this page — the prompt below is pre-filled from it. This must point to a separate local clone of the <em>cursor-guardrails template repo itself</em> (not the existing project you're upgrading) — clone it once with the same steps as the "Start a new project" tab if you haven't already.</p>
+      <p style="font-size:12px; color:var(--text2); background:var(--surface2); border-radius:var(--radius-sm); padding:10px 12px; margin-bottom:14px;"><strong>When the agent asks "which layers to apply":</strong> it's normally fine to reply "apply all layers." If you'd rather review the riskier ones separately, tell it to hold off on layers 4–6 (the "Merge carefully" rows below) for a follow-up review.</p>
       <div class="copy-block">
         <pre id="bootstrap-prompt">Upgrade this project from the cursor-guardrails template.
 
@@ -379,6 +385,7 @@ Follow this workflow:
       </div>
 
       <h3>PowerShell bootstrap (Option B)</h3>
+      <p style="font-size:12px; color:var(--text2); background:var(--surface2); border-radius:var(--radius-sm); padding:10px 12px; margin-bottom:14px;">Optional — this script only does Layer 0 (copying the <code>.cursor/commands/</code> folder) as a faster, no-agent alternative to asking the chatbot to do that one step. You still need to type <code>/guardrail-upgrade</code> in Cursor chat afterward to run the rest of the layers; most people can skip this and just use the Bootstrap prompt above instead.</p>
       <div class="copy-block">
         <pre id="ps-bootstrap">$template = "TEMPLATE_PATH_PLACEHOLDER"
 $dest = ".cursor\commands"
