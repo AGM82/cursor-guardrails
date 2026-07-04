@@ -1147,6 +1147,8 @@ function generateDecisionPrompt(btn) {
 
 Work on a new branch and open ONE pull request. Follow .cursor/rules/00-core.mdc; run npm run typecheck, lint and test before finishing. Make the smallest change that satisfies each suggestion and extend existing patterns rather than inventing new ones.
 
+0) VERIFY each suggestion's specific technical details (package versions, action SHAs, npm package names, cron syntax, etc.) against the current state of the ecosystem before implementing — AI-generated suggestions may reference versions that are already superseded or no longer exist. Use the current correct value and note the substitution when recording the decision.
+
 1) IMPLEMENT each accepted suggestion below, editing the exact files named in its Proposed text:
 ${accepted.length ? fmtAccepted : '  (none accepted this round)'}
 
@@ -1157,6 +1159,8 @@ ${accepted.length ? fmtAccepted : '  (none accepted this round)'}
    DECLINED ids: ${declined.map(([id]) => id).join(', ') || '(none)'}
 
 3) If anything was implemented, bump .cursor/guardrail-version by one patch level and update guardrailVersion in guardrail-layers.json to match (the system improved).
+
+4) Before opening the PR, review your own diff as a critical reviewer would: for each implemented suggestion, confirm it actually achieves the stated benefit, matches this repo's existing conventions rather than introducing a new pattern, and does not weaken any existing guardrail. Fix anything that fails this check before opening the PR.
 
 Open the PR titled "feat(guardrails): apply AI-review improvements ${runDate}", summarise what changed, and list the declined items so future reviews do not re-propose them.`;
 
