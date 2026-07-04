@@ -63,6 +63,33 @@ git commit -m "chore: initial commit before guardrails"
 
 ---
 
+## Layer 0.4 — Project profile
+
+Not every project has the same needs. Before running the gap analysis, ask the
+user 3 quick questions so the layer recommendation is tailored instead of a
+blanket "apply everything." The canonical questions, type-to-domain mapping,
+and risk-to-layer mapping live in `guardrail-layers.json` → `projectProfiles`
+(reusing the existing `riskTiers` block — do not invent a new layer mapping).
+
+Ask:
+
+1. **"What kind of project is this?"** — `frontend-ui` / `backend-api` /
+   `full-stack` / `library-or-cli` / `script-or-prototype`.
+   Look up `projectProfiles.types[<answer>]` to see which domain rule files
+   are `activeDomains` now vs `inertUntilUsedDomains` (safe to install
+   either way — inert ones simply have no effect until the project grows
+   into them, per `90-project-context.mdc`).
+2. **"What is the risk level of this project?"** — `Low` / `Medium` / `High`.
+   Look up `riskTiers[<answer>].requiredLayers` for the recommended layer set.
+3. **"Does the project already have its own ESLint/Prettier/tsconfig setup?"**
+   — `yes` / `no`. If `yes`, treat Layer 4 as extra merge-carefully: read
+   both configs in full before adding strict settings, and never overwrite.
+
+Store the resulting recommended layer set as **RECOMMENDED_LAYERS** — it
+replaces the blanket "all" suggestion in the gap-analysis prompt below.
+
+---
+
 ## Layer 1–5 — Audit: read both sides
 
 Read the following files from TEMPLATE_PATH and from THIS project. For each file, note whether it exists here and — if it does — whether it contains the key content the template has.
@@ -146,7 +173,7 @@ Group rows by layer. Show a summary line per layer (e.g. "Layer 1: 3 missing, 2 
 
 **Do not make any changes yet.** Ask the user:
 
-> "Which layers would you like to upgrade? Enter layer numbers (e.g. `1 2 3`) or `all`. For a first adoption, `all` is recommended."
+> "Which layers would you like to upgrade? Enter layer numbers (e.g. `1 2 3`) or `all`. Based on your answers in Layer 0.4, **RECOMMENDED_LAYERS** is recommended for a project at this risk level — reply `all` to go further than that."
 
 ---
 
