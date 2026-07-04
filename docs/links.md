@@ -104,6 +104,7 @@ Type these in Cursor Agent chat (defined in [`.cursor/commands/`](../.cursor/com
 | Command              | Purpose                                                       |
 | -------------------- | ------------------------------------------------------------- |
 | `/review`            | Run checks; report findings by severity before fixing         |
+| `/audit`             | Whole-repo, point-in-time health audit — not scoped to a diff |
 | `/pr`                | Confirm checks, write Conventional Commit, push, open PR      |
 | `/update-deps`       | Update dependencies one at a time with re-testing             |
 | `/guardrail-upgrade` | Gap analysis against this template; implement approved layers |
@@ -134,6 +135,7 @@ npm run typecheck    # TypeScript
 npm run lint         # ESLint
 npm run test         # Vitest (+ coverage thresholds in CI)
 npm run build        # Production build
+npm run knip         # Dead code / unused deps / unused exports (used by /audit)
 ```
 
 Canonical reference files: `src/components/Greeting.tsx`, `src/lib/currency.ts`, and their tests.

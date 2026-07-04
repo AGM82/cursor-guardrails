@@ -17,7 +17,7 @@ Prose rules are _advisory_ — an agent can drift from them after a few turns. L
 | 2 — Toolchain  | TypeScript strict, ESLint (security + a11y), Prettier, commitlint, tests                                                     | Repo        | Deterministic |
 | 3 — Runtime    | Cursor hooks (`.cursor/hooks.json`) gate shell commands and secret-file reads, and audit-log agent activity                  | Repo        | Deterministic |
 | 4 — Automation | Pre-commit (husky + lint-staged + gitleaks) and CI (typecheck, lint, test, build, `npm audit`, gitleaks, Semgrep OWASP SAST) | Repo / CI   | Deterministic |
-| 5 — Workflows  | Commands in `.cursor/commands/*.md` (`/review`, `/pr`, `/update-deps`, `/guardrail-upgrade`)                                 | Repo        | Workflow      |
+| 5 — Workflows  | Commands in `.cursor/commands/*.md` (`/review`, `/audit`, `/pr`, `/update-deps`, `/guardrail-upgrade`)                       | Repo        | Workflow      |
 | 6 — Review     | Agent Review, Bugbot on PRs, TDD for logic-heavy work                                                                        | Cursor / CI | Safety net    |
 
 ## Fundamental vs per-project
