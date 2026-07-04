@@ -2,7 +2,8 @@
 
 The `/guardrail-upgrade` slash command lives inside `.cursor/commands/` — so the
 first time you adopt guardrails on a project, that file does not exist yet.
-This document gives you two ways to get started.
+This document gives you three ways to get started — most people only need
+Option A.
 
 ---
 
@@ -23,12 +24,19 @@ Follow this workflow:
 2. Capture a pre-upgrade baseline: run typecheck, lint, build, and test
    (skip any that do not exist). Save output to .cursor/guardrail-baseline.log.
 3. Commit everything as: chore: snapshot before guardrail upgrade
-4. Compare both projects and show a gap analysis table by layer (1–5).
-5. Ask me which layers to apply before changing anything.
-6. Never overwrite src/, package.json, or tsconfig.json — merge only.
-7. After Layers 1–5: run a code compliance audit (Layer 6) and report
-   Blocker / Should-fix / Nit findings. Fix blockers before finishing.
-8. Show the Layer 7 governance checklist.
+4. Ask me 3 quick questions to build a project profile: project type
+   (frontend-ui / backend-api / full-stack / library-or-cli /
+   script-or-prototype), risk level (Low / Medium / High), and whether I
+   already have my own ESLint/Prettier/tsconfig setup. Use
+   TEMPLATE_PATH/guardrail-layers.json -> projectProfiles and riskTiers to
+   turn my answers into a recommended layer set.
+5. Compare both projects and show a gap analysis table by layer, alongside
+   the recommended layer set from step 4.
+6. Ask me which layers to apply before changing anything.
+7. Never overwrite src/, package.json, or tsconfig.json — merge only.
+8. After the approved layers: run a code compliance audit (Layer 6) and
+   report Blocker / Should-fix / Nit findings. Fix blockers before finishing.
+9. Show the Layer 7 governance checklist.
 ```
 
 This produces the same result as `/guardrail-upgrade` once Layer 1 is installed.
@@ -85,29 +93,33 @@ After bootstrapping, `/guardrail-upgrade` will:
 
 1. Run a pre-upgrade baseline (saves current typecheck/lint errors)
 2. Snapshot git
-3. Compare the project against the template and show a gap analysis
-4. Apply approved layers — infrastructure only, never touching your `src/`
-5. Run a code compliance audit (Layer 6) against your own code
-6. Present a governance activation checklist (Layer 7)
+3. Ask 3 quick project-profile questions (type, risk, existing toolchain)
+   and recommend a tailored layer set — not every project needs the same
+   layers
+4. Compare the project against the template and show a gap analysis
+5. Apply approved layers — infrastructure only, never touching your `src/`
+6. Run a code compliance audit (Layer 6) against your own code
+7. Present a governance activation checklist (Layer 7)
 
 ---
 
 ## Suggested first-time layer order
 
-For most existing projects, start with the safe layers:
+There is no single "right" layer order for every project — that is what the
+project-profile step (Layer 0.4) is for. As a rule of thumb:
 
-```
-1 2 3
-```
+- **Low risk** (prototype, internal script): the profile recommends layers
+  `1 2 3` — AI governance, git hygiene, and commit discipline, without
+  forcing a full CI pipeline on something that may be thrown away.
+- **Medium risk** (a real feature others depend on): the profile recommends
+  `1 2 3 4 5` — adds the code-quality toolchain and CI pipeline.
+- **High risk** (production, handles data, customer-facing): the profile
+  recommends `1 2 3 4 5 6` — adds the code compliance audit before Layer 7
+  governance activation.
 
-Then, once those are green on CI:
-
-```
-4 5 6 7
-```
-
-If you are confident the project has no conflicting ESLint or TypeScript setup,
-use `all` to apply everything in one pass.
+Reply `all` instead of the recommendation if you are confident the project
+has no conflicting ESLint or TypeScript setup and want to apply everything
+in one pass.
 
 ---
 

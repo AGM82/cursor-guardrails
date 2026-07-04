@@ -291,19 +291,20 @@
       <tr><td><strong>2 — Toolchain</strong></td><td>TypeScript strict, ESLint (security + a11y), Prettier, commitlint, tests</td><td>Repo</td><td><span class="tier-col-type"><span class="tier-dot" style="background:var(--green)"></span>Deterministic</span></td></tr>
       <tr><td><strong>3 — Runtime</strong></td><td>Cursor hooks gate shell commands and secret reads; audit log</td><td>Repo</td><td><span class="tier-col-type"><span class="tier-dot" style="background:var(--green)"></span>Deterministic</span></td></tr>
       <tr><td><strong>4 — Automation</strong></td><td>Husky + lint-staged + gitleaks pre-commit; CI (typecheck, lint, test, build, audit, secret scan, SAST)</td><td>Repo/CI</td><td><span class="tier-col-type"><span class="tier-dot" style="background:var(--green)"></span>Deterministic</span></td></tr>
-      <tr><td><strong>5 — Workflows</strong></td><td>Slash commands: <code>/review</code>, <code>/pr</code>, <code>/update-deps</code>, <code>/guardrail-upgrade</code></td><td>Repo</td><td><span class="tier-col-type"><span class="tier-dot" style="background:var(--purple)"></span>Workflow</span></td></tr>
+      <tr><td><strong>5 — Workflows</strong></td><td>Slash commands: <code>/review</code>, <code>/audit</code>, <code>/pr</code>, <code>/update-deps</code>, <code>/guardrail-upgrade</code></td><td>Repo</td><td><span class="tier-col-type"><span class="tier-dot" style="background:var(--purple)"></span>Workflow</span></td></tr>
       <tr><td><strong>6 — Review</strong></td><td>Agent Review, Bugbot on PRs, TDD for logic-heavy work</td><td>Cursor/CI</td><td><span class="tier-col-type"><span class="tier-dot" style="background:var(--yellow)"></span>Safety net</span></td></tr>
     </tbody>
   </table>
 
-  <h3>The 4 slash commands</h3>
+  <h3>The 5 slash commands</h3>
   <table>
     <thead><tr><th>Command</th><th>What it does</th></tr></thead>
     <tbody>
       <tr><td><code>/review</code></td><td>Run checks and review staged changes; report by severity before fixing anything</td></tr>
+      <tr><td><code>/audit</code></td><td>Whole-repo, point-in-time health audit — not scoped to a diff</td></tr>
       <tr><td><code>/pr</code></td><td>Confirm checks pass, write a Conventional Commit, push, and open a pull request</td></tr>
       <tr><td><code>/update-deps</code></td><td>Update dependencies one at a time, re-testing after each</td></tr>
-      <tr><td><code>/guardrail-upgrade</code></td><td>Layers 0–7: bootstrap → baseline → gap analysis → upgrade → code audit → governance</td></tr>
+      <tr><td><code>/guardrail-upgrade</code></td><td>Layers 0–7: bootstrap → profile → gap analysis → upgrade → code audit → governance</td></tr>
     </tbody>
   </table>
 
@@ -344,28 +345,18 @@
     </div>
 
     <div id="tab-existing-project" role="tabpanel" style="display:none;">
-      <h3>Adopt on an existing project — Layer order</h3>
-      <p style="font-size:12px; color:var(--text2); background:var(--surface2); border-radius:var(--radius-sm); padding:10px 12px; margin-bottom:14px;">The actual thing you do is scroll down and paste the <strong>Bootstrap prompt</strong> below into a new Cursor Agent chat, opened inside the existing project you want to upgrade. The layer table underneath is just a reference — it shows what the AI will do and ask your permission for at each step.</p>
+      <h3>Adopt on an existing project — quickstart</h3>
+      <p style="font-size:12px; color:var(--text2); background:var(--surface2); border-radius:var(--radius-sm); padding:10px 12px; margin-bottom:14px;"><strong>Two folders are involved:</strong> the project you want to upgrade (call it <strong>Project X</strong>) and a separate local clone of the <em>cursor-guardrails template repo itself</em>. The template clone is only there so the agent has something to copy files from — you never open it or work inside it. If you haven't cloned the template yet, do that once using the same steps as the "Start a new project" tab.</p>
       <table>
-        <thead><tr><th>Layer</th><th>What happens</th><th>Risk</th></tr></thead>
+        <thead><tr><th>#</th><th>Step</th><th>Detail</th></tr></thead>
         <tbody>
-          <tr><td><strong>0 — Bootstrap</strong></td><td>Copy <code>.cursor/commands/</code> from template if missing</td><td><span class="badge badge-safe">Safe</span></td></tr>
-          <tr><td><strong>0.5 — Baseline</strong></td><td>Capture current typecheck/lint errors before any changes</td><td><span class="badge badge-safe">Safe</span></td></tr>
-          <tr><td><strong>0.6 — Snapshot</strong></td><td>Git commit as a safe undo point</td><td><span class="badge badge-safe">Safe</span></td></tr>
-          <tr><td><strong>1 — AI rules</strong></td><td>Copy <code>.cursor/</code> rules, hooks, commands; <code>AGENTS.md</code></td><td><span class="badge badge-safe">Safe</span></td></tr>
-          <tr><td><strong>2 — Git hygiene</strong></td><td>Copy <code>.gitattributes</code>, <code>.editorconfig</code>, <code>.nvmrc</code>, <code>.npmrc</code>, GitHub files</td><td><span class="badge badge-safe">Safe</span></td></tr>
-          <tr><td><strong>3 — Commit discipline</strong></td><td>Install commitlint + Husky + lint-staged</td><td><span class="badge badge-safe">Safe</span></td></tr>
-          <tr><td><strong>4 — Toolchain</strong></td><td>Merge ESLint, TypeScript strict, Prettier</td><td><span class="badge badge-merge">Merge carefully</span></td></tr>
-          <tr><td><strong>5 — CI pipeline</strong></td><td>Add/merge GitHub Actions jobs: secret-scan, SAST, audit</td><td><span class="badge badge-merge">Merge carefully</span></td></tr>
-          <tr><td><strong>6 — Code audit</strong></td><td>Align existing code with installed rules; fix Blockers</td><td><span class="badge badge-merge">Merge carefully</span></td></tr>
-          <tr><td><strong>7 — Governance</strong></td><td>Enable branch protection; PR-only workflow; version file</td><td><span class="badge badge-safe">Safe</span></td></tr>
+          <tr><td>1</td><td><strong>Fill in the template path</strong></td><td>At the top of this page, set <strong>"Template path on this machine"</strong> to where you cloned <code>cursor-guardrails</code> (not Project X). The prompt below is pre-filled from it.</td></tr>
+          <tr><td>2</td><td><strong>Paste the prompt</strong></td><td>Open Project X in Cursor, start a new Agent chat, and paste the <strong>Bootstrap prompt</strong> below. It works day zero — nothing needs to be in place first.</td></tr>
+          <tr><td>3</td><td><strong>Answer 3 quick questions, then approve layers</strong></td><td>The agent asks about the project's type, risk level, and existing toolchain, then recommends which layers to apply based on the answers — not everything, and not identical for every project. Reply <code>all</code> instead if you'd rather apply everything in one pass.</td></tr>
         </tbody>
       </table>
 
       <h3>Bootstrap prompt — paste into Cursor Agent chat</h3>
-      <p>Copy this block and paste it into a new Cursor Agent chat in your existing project. It works day zero — nothing needs to be in place first.</p>
-      <p style="font-size:12px; color:var(--text2); background:var(--surface2); border-radius:var(--radius-sm); padding:10px 12px; margin-bottom:14px;"><strong>Before you paste it:</strong> fill in the <strong>"Template path on this machine"</strong> field at the top of this page — the prompt below is pre-filled from it. This must point to a separate local clone of the <em>cursor-guardrails template repo itself</em> (not the existing project you're upgrading) — clone it once with the same steps as the "Start a new project" tab if you haven't already.</p>
-      <p style="font-size:12px; color:var(--text2); background:var(--surface2); border-radius:var(--radius-sm); padding:10px 12px; margin-bottom:14px;"><strong>When the agent asks "which layers to apply":</strong> it's normally fine to reply "apply all layers." If you'd rather review the riskier ones separately, tell it to hold off on layers 4–6 (the "Merge carefully" rows below) for a follow-up review.</p>
       <div class="copy-block">
         <pre id="bootstrap-prompt">Upgrade this project from the cursor-guardrails template.
 
@@ -376,23 +367,46 @@ Follow this workflow:
 1. Copy .cursor/commands/ from the template into this project (create the folder if it does not exist).
 2. Capture a pre-upgrade baseline: run typecheck, lint, build, and test (skip any that do not exist). Save output to .cursor/guardrail-baseline.log.
 3. Commit everything as: chore: snapshot before guardrail upgrade
-4. Compare both projects and show a gap analysis table by layer.
-5. Ask me which layers to apply before changing anything.
-6. Never overwrite src/, package.json, or tsconfig.json — merge only.
-7. After Layers 1-5: run a code compliance audit (Layer 6) and report Blocker / Should-fix / Nit findings. Fix blockers before finishing.
-8. Show the Layer 7 governance checklist.</pre>
+4. Ask me 3 quick questions to build a project profile: project type (frontend-ui / backend-api / full-stack / library-or-cli / script-or-prototype), risk level (Low / Medium / High), and whether I already have my own ESLint/Prettier/tsconfig setup. Use TEMPLATE_PATH/guardrail-layers.json -> projectProfiles and riskTiers to turn my answers into a recommended layer set.
+5. Compare both projects and show a gap analysis table by layer, alongside the recommended layer set from step 4.
+6. Ask me which layers to apply before changing anything.
+7. Never overwrite src/, package.json, or tsconfig.json — merge only.
+8. After the approved layers: run a code compliance audit (Layer 6) and report Blocker / Should-fix / Nit findings. Fix blockers before finishing.
+9. Show the Layer 7 governance checklist.</pre>
         <button class="copy-btn" onclick="copyEl('bootstrap-prompt', this)">Copy</button>
       </div>
 
-      <h3>PowerShell bootstrap (Option B)</h3>
-      <p style="font-size:12px; color:var(--text2); background:var(--surface2); border-radius:var(--radius-sm); padding:10px 12px; margin-bottom:14px;">Optional — this script only does Layer 0 (copying the <code>.cursor/commands/</code> folder) as a faster, no-agent alternative to asking the chatbot to do that one step. You still need to type <code>/guardrail-upgrade</code> in Cursor chat afterward to run the rest of the layers; most people can skip this and just use the Bootstrap prompt above instead.</p>
-      <div class="copy-block">
-        <pre id="ps-bootstrap">$template = "TEMPLATE_PATH_PLACEHOLDER"
+      <p style="font-size:12px; color:var(--text2); background:var(--surface2); border-radius:var(--radius-sm); padding:10px 12px; margin: 14px 0;">Once adopted, this is repeatable: run <code>/audit</code> any time for a whole-codebase health check, and re-run <code>/guardrail-upgrade</code> later to detect drift against a newer template version.</p>
+
+      <h3>Reference — what the agent does at each layer</h3>
+      <p style="font-size:12px; color:var(--text2);">You don't need to read this to get started — it's what the prompt above walks the agent through, for when you want to see what it's about to do or hold off on a specific layer.</p>
+      <table>
+        <thead><tr><th>Layer</th><th>What happens</th><th>Risk</th></tr></thead>
+        <tbody>
+          <tr><td><strong>0 — Bootstrap</strong></td><td>Copy <code>.cursor/commands/</code> from template if missing</td><td><span class="badge badge-safe">Safe</span></td></tr>
+          <tr><td><strong>0.5 — Baseline</strong></td><td>Capture current typecheck/lint errors before any changes</td><td><span class="badge badge-safe">Safe</span></td></tr>
+          <tr><td><strong>0.6 — Snapshot</strong></td><td>Git commit as a safe undo point</td><td><span class="badge badge-safe">Safe</span></td></tr>
+          <tr><td><strong>0.4 — Project profile</strong></td><td>3 questions (type, risk, existing toolchain) recommend a tailored layer set instead of "apply all"</td><td><span class="badge badge-safe">Safe</span></td></tr>
+          <tr><td><strong>1 — AI rules</strong></td><td>Copy <code>.cursor/</code> rules, hooks, commands; <code>AGENTS.md</code></td><td><span class="badge badge-safe">Safe</span></td></tr>
+          <tr><td><strong>2 — Git hygiene</strong></td><td>Copy <code>.gitattributes</code>, <code>.editorconfig</code>, <code>.nvmrc</code>, <code>.npmrc</code>, GitHub files</td><td><span class="badge badge-safe">Safe</span></td></tr>
+          <tr><td><strong>3 — Commit discipline</strong></td><td>Install commitlint + Husky + lint-staged</td><td><span class="badge badge-safe">Safe</span></td></tr>
+          <tr><td><strong>4 — Toolchain</strong></td><td>Merge ESLint, TypeScript strict, Prettier</td><td><span class="badge badge-merge">Merge carefully</span></td></tr>
+          <tr><td><strong>5 — CI pipeline</strong></td><td>Add/merge GitHub Actions jobs: secret-scan, SAST, audit</td><td><span class="badge badge-merge">Merge carefully</span></td></tr>
+          <tr><td><strong>6 — Code audit</strong></td><td>Align existing code with installed rules; fix Blockers</td><td><span class="badge badge-merge">Merge carefully</span></td></tr>
+          <tr><td><strong>7 — Governance</strong></td><td>Enable branch protection; PR-only workflow; version file</td><td><span class="badge badge-safe">Safe</span></td></tr>
+        </tbody>
+      </table>
+
+      <p style="font-size:12px; color:var(--text2); margin-top:14px;">Power users only: a <a href="#" onclick="togglePsBootstrap(); return false;">PowerShell one-liner</a> can copy Layer 0 (just the <code>.cursor/commands/</code> folder) without an agent chat — you'd still type <code>/guardrail-upgrade</code> afterward for everything else. Most people should just use the Bootstrap prompt above.</p>
+      <div id="ps-bootstrap-wrap" style="display:none;">
+        <div class="copy-block">
+          <pre id="ps-bootstrap">$template = "TEMPLATE_PATH_PLACEHOLDER"
 $dest = ".cursor\commands"
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
 Copy-Item "$template\.cursor\commands\*" $dest -Recurse -Force
 Write-Host "Commands bootstrapped. Now type /guardrail-upgrade in Cursor chat."</pre>
-        <button class="copy-btn" onclick="copyEl('ps-bootstrap', this)">Copy</button>
+          <button class="copy-btn" onclick="copyEl('ps-bootstrap', this)">Copy</button>
+        </div>
       </div>
     </div>
   </div>
@@ -910,6 +924,12 @@ function toggleDetailPanel(id) {
   if (!panel) return;
   panel.classList.toggle('open');
   if (btn) btn.textContent = panel.classList.contains('open') ? 'Details ▲' : 'Details ▼';
+}
+
+function togglePsBootstrap() {
+  const wrap = document.getElementById('ps-bootstrap-wrap');
+  if (!wrap) return;
+  wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
 }
 
 function toggleDeclined() {
@@ -1475,7 +1495,7 @@ function restoreHealth() {
 
 // ─── Prompt library ───────────────────────────────────────────────────────────
 const PROMPTS = [
-  { category: 'Adoption', name: 'Bootstrap existing project', desc: 'Day-zero prompt to adopt guardrails on any project. Template path is pre-filled.', command: `Upgrade this project from the cursor-guardrails template.\n\nTemplate path:\nTEMPLATE_PATH_PLACEHOLDER\n\nFollow /guardrail-upgrade Layers 0–7: bootstrap, baseline, snapshot, gap analysis, upgrade, code audit, governance.` },
+  { category: 'Adoption', name: 'Bootstrap existing project', desc: 'Day-zero prompt to adopt guardrails on any project — same flow as the "Adopt on existing project" tab. Template path is pre-filled.', command: `Upgrade this project from the cursor-guardrails template.\n\nTemplate path:\nTEMPLATE_PATH_PLACEHOLDER\n\nFollow /guardrail-upgrade Layers 0–7: bootstrap, baseline, snapshot, project profile (type, risk, existing toolchain — recommends a tailored layer set), gap analysis, upgrade, code audit, governance.` },
   { category: 'Adoption', name: 'Check guardrail version drift', desc: 'Ask the agent to compare this project\'s guardrail version against the template.', command: `Check whether this project's guardrail version (in .cursor/guardrail-version) is current.\n\nTemplate path: TEMPLATE_PATH_PLACEHOLDER\n\nCompare .cursor/guardrail-version here vs TEMPLATE_PATH_PLACEHOLDER/.cursor/guardrail-version and report which layers may be outdated.` },
   { category: 'Review', name: 'POPIA compliance audit', desc: 'Ask the agent to audit a file or directory for personal data handling issues.', command: `Audit the following file(s) for POPIA compliance:\n\n[LIST FILES OR DIRECTORIES]\n\nCheck against .cursor/rules/10-security-popia.mdc:\n- No personal data in logs\n- Input validated at trust boundaries\n- No secrets in source\n- Parameterised queries only\n\nReport findings as: Blocker / Should-fix / Nit` },
   { category: 'Review', name: 'PR description review', desc: 'Ask the agent to review a draft PR description before posting.', command: `Review this pull request description before I post it:\n\n[PASTE PR TITLE AND BODY]\n\nCheck:\n1. Does the title follow Conventional Commits format?\n2. Does the body clearly explain what changed and why?\n3. Are security and data checkboxes appropriate?\n4. Are follow-ups noted?` },

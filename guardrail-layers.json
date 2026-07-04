@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 2,
-  "guardrailVersion": "1.3.2",
+  "schemaVersion": 3,
+  "guardrailVersion": "1.3.3",
   "description": "Canonical adoption-layer model and risk-tier mapping for the cursor-guardrails template. Single source of truth for /guardrail-upgrade and downstream governance tools such as Throughline. Do not edit by hand — changes must be deliberate and version-bumped. Verified against the actual file tree by .github/scripts/check-manifest-drift.mjs in CI.",
   "source": "https://github.com/AGM82/cursor-guardrails",
   "lastUpdated": "2026-07-04",
@@ -114,6 +114,81 @@
       "rationale": "High-risk initiatives require all of Medium plus a formal code compliance audit before build begins. Layer 7 governance activation is expected but recorded separately as a human checklist."
     }
   },
+  "projectProfiles": {
+    "description": "Drives the Layer 0.4 'Project profile' step in guardrail-upgrade.md so the recommended layer set adapts to each project instead of a blanket 'apply all'. The risk question reuses riskTiers above — this block does not duplicate that mapping. Not every project has the same needs: a library needs different active domains than a full-stack app, and a low-risk prototype needs fewer required layers than a high-risk production service.",
+    "questions": [
+      {
+        "id": "type",
+        "prompt": "What kind of project is this?",
+        "options": [
+          "frontend-ui",
+          "backend-api",
+          "full-stack",
+          "library-or-cli",
+          "script-or-prototype"
+        ],
+        "mapsTo": "projectProfiles.types"
+      },
+      {
+        "id": "risk",
+        "prompt": "What is the risk level of this project?",
+        "options": ["Low", "Medium", "High"],
+        "mapsTo": "riskTiers"
+      },
+      {
+        "id": "existingToolchain",
+        "prompt": "Does the project already have its own ESLint/Prettier/tsconfig setup?",
+        "options": ["yes", "no"],
+        "effect": "If yes, treat Layer 4 as extra merge-carefully: read both configs in full before adding strict settings, and never overwrite."
+      }
+    ],
+    "alwaysActiveDomains": ["Engineering", "Security", "Commits", "Tooling", "AITooling"],
+    "types": {
+      "frontend-ui": {
+        "activeDomains": ["Frontend", "Design", "UX"],
+        "inertUntilUsedDomains": ["Backend", "Database", "Deployment", "DataScience"]
+      },
+      "backend-api": {
+        "activeDomains": ["Backend"],
+        "inertUntilUsedDomains": [
+          "Frontend",
+          "Design",
+          "UX",
+          "Database",
+          "Deployment",
+          "DataScience"
+        ]
+      },
+      "full-stack": {
+        "activeDomains": ["Frontend", "Design", "UX", "Backend"],
+        "inertUntilUsedDomains": ["Database", "Deployment", "DataScience"]
+      },
+      "library-or-cli": {
+        "activeDomains": [],
+        "inertUntilUsedDomains": [
+          "Frontend",
+          "Design",
+          "UX",
+          "Backend",
+          "Database",
+          "Deployment",
+          "DataScience"
+        ]
+      },
+      "script-or-prototype": {
+        "activeDomains": [],
+        "inertUntilUsedDomains": [
+          "Frontend",
+          "Design",
+          "UX",
+          "Backend",
+          "Database",
+          "Deployment",
+          "DataScience"
+        ]
+      }
+    }
+  },
   "schemaChangelog": [
     {
       "schemaVersion": 1,
@@ -134,6 +209,11 @@
       "schemaVersion": 2,
       "date": "2026-07-04",
       "note": "Adds .cursor/commands/audit.md to Layer 1 — a new /audit command for whole-repo, point-in-time health audits (distinct from the diff-scoped /review and template-comparison /guardrail-upgrade). guardrailVersion patch bump per the new-file-in-Layer-1 convention established for rule files, extended here to command files."
+    },
+    {
+      "schemaVersion": 3,
+      "date": "2026-07-04",
+      "note": "Adds a new top-level projectProfiles block — the data model for the Layer 0.4 'Project profile' step in guardrail-upgrade.md. Maps project type to active vs inert-until-used domains and reuses the existing riskTiers block for the layer recommendation, so adoption is tailored per project instead of a blanket 'apply all'. Additive schema change (schemaVersion 2 -> 3); guardrailVersion patch bump (the system improved)."
     }
   ]
 }
