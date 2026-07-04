@@ -1,9 +1,9 @@
 {
   "schemaVersion": 2,
-  "guardrailVersion": "1.3.0",
+  "guardrailVersion": "1.3.1",
   "description": "Canonical adoption-layer model and risk-tier mapping for the cursor-guardrails template. Single source of truth for /guardrail-upgrade and downstream governance tools such as Throughline. Do not edit by hand — changes must be deliberate and version-bumped. Verified against the actual file tree by .github/scripts/check-manifest-drift.mjs in CI.",
   "source": "https://github.com/AGM82/cursor-guardrails",
-  "lastUpdated": "2026-06-30",
+  "lastUpdated": "2026-07-04",
   "adoptionLayers": {
     "1": {
       "name": "AI instructions",
