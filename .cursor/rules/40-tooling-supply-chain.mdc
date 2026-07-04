@@ -10,6 +10,16 @@ alwaysApply: false
 - Prefer extending what is already installed over adding a new package. Justify every new dependency in the plan.
 - Update dependencies one at a time and re-run `typecheck`, `lint`, and `test` after each. Group successful updates into a single `chore(deps):` commit. Flag major-version bumps for human review.
 - Treat `npm audit` findings at `high` or above as blockers. The CI dependency-audit step enforces this.
+- Install production dependencies with `npm install --save-exact <pkg>` to record the exact resolved version; semver ranges (`^`) remain fine for devDependencies, where drift risk is lower.
+- Before adding any package published after mid-2023, check its provenance attestation on npmjs.com and run `npm audit signatures` — flag any package without a provenance attestation in the plan before installing it. The CI `verify` job also runs `npm audit signatures` on every build.
+
+# Software Bill of Materials (SBOM)
+
+- CI's `sbom` job in `ci.yml` generates a CycloneDX SBOM (`sbom.json`) via `@cyclonedx/cyclonedx-npm` and uploads it as a workflow artifact (90-day retention). Download it from the run's Summary page under Artifacts when a dependency inventory or CVE cross-reference is needed.
+
+# Container image pinning
+
+- CI containers (Semgrep, gitleaks) are pinned by image digest (`image:tag@sha256:...`), not tag alone — tags are mutable and can be silently repointed to a different image. When bumping either tool's version, re-resolve the digest for the new tag (`docker manifest inspect`, or the registry's HTTP API) and update the tag and digest together. Dependabot does not track container digests automatically, so this is a manual step.
 
 # Dependabot guidance
 
@@ -42,4 +52,4 @@ Reference: [MCP Security Considerations](https://spec.modelcontextprotocol.io/sp
 
 # Deterministic enforcement (do not bypass)
 
-- Cursor hooks in `.cursor/hooks.json` gate shell commands and file reads at runtime; pre-commit (husky + gitleaks) and CI (typecheck, lint, test, build, audit, secret scan, SAST) gate every change. Do not disable, weaken, or work around these to get a change through — fix the underlying issue.
+- Cursor hooks in `.cursor/hooks.json` gate shell commands and file reads at runtime; pre-commit (husky + gitleaks) and CI (typecheck, lint, test, build, dependency audit, package-signature verification, SBOM generation, build provenance attestation, secret scan, SAST) gate every change. Do not disable, weaken, or work around these to get a change through — fix the underlying issue.
