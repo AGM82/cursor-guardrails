@@ -2,11 +2,14 @@ name: Bi-weekly AI review
 
 on:
   schedule:
-    # Every other Monday at 08:00 UTC (weeks 1, 3 of each month).
-    - cron: '0 8 1-7 * 1'    # First Monday of the month — full bi-weekly review
-    - cron: '0 8 15-21 * 1'  # Third Monday of the month — full bi-weekly review
-    # First Monday of each quarter at 09:00 UTC — security deep-dive.
-    - cron: '0 9 1-7 1,4,7,10 1'
+    # Every Monday at 08:00 UTC. Cron has no "Nth weekday of month" syntax — an
+    # earlier version tried to fake it with `0 8 1-7 * 1` / `0 8 15-21 * 1`, but
+    # POSIX cron treats day-of-month and day-of-week as OR (not AND) once both
+    # fields are restricted, so those fired every day 1-7 and 15-21, not just
+    # the Mondays inside those ranges. The "Determine review type" step below
+    # now does the real date math and skips on Mondays that aren't the 1st or
+    # 3rd of the month.
+    - cron: '0 8 * * 1'
   workflow_dispatch:
     inputs:
       review_type:
@@ -52,32 +55,50 @@ jobs:
         with:
           node-version-file: .nvmrc
 
-      # Scheduled runs carry no `inputs` — without this, the quarterly security
-      # cron (line 9) would silently fall through to a second biweekly review.
-      # github.event.schedule holds the exact cron string that fired the run.
+      # Scheduled runs carry no `inputs` and now fire every Monday (see the
+      # `on.schedule` comment above), so this step does the real "which Monday
+      # is it" date math and sets `skip=true` on the 2nd/4th/5th Monday of the
+      # month — every later step is gated on `skip != 'true'`.
       #
       # github/inputs context values are passed via `env:` and read as quoted
       # shell variables rather than interpolated directly into `run:` — even
-      # though these particular values are constrained (a `type: choice` enum
-      # and a fixed cron string), interpolating `${{ }}` straight into a shell
-      # script is a generic injection pattern Semgrep's run-shell-injection
-      # rule flags on sight, regardless of how trusted the actual value is.
+      # though these particular values are constrained (a `type: choice` enum),
+      # interpolating `${{ }}` straight into a shell script is a generic
+      # injection pattern Semgrep's run-shell-injection rule flags on sight,
+      # regardless of how trusted the actual value is.
       - name: Determine review type
         id: determine_type
         env:
           INPUT_REVIEW_TYPE: ${{ inputs.review_type }}
-          EVENT_SCHEDULE: ${{ github.event.schedule }}
         run: |
           if [ -n "$INPUT_REVIEW_TYPE" ]; then
             echo "review_type=$INPUT_REVIEW_TYPE" >> "$GITHUB_OUTPUT"
-          elif [ "$EVENT_SCHEDULE" = "0 9 1-7 1,4,7,10 1" ]; then
-            echo "review_type=security" >> "$GITHUB_OUTPUT"
-          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # %-d/%-m (no leading zero) avoid bash treating e.g. "08" as an
+          # invalid octal literal in the numeric comparisons below.
+          DAY=$(date -u +%-d)
+          MONTH=$(date -u +%-m)
+
+          if [ "$DAY" -le 7 ]; then
+            case "$MONTH" in
+              1|4|7|10) echo "review_type=security" >> "$GITHUB_OUTPUT" ;;
+              *) echo "review_type=biweekly" >> "$GITHUB_OUTPUT" ;;
+            esac
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          elif [ "$DAY" -ge 15 ] && [ "$DAY" -le 21 ]; then
             echo "review_type=biweekly" >> "$GITHUB_OUTPUT"
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "review_type=skipped" >> "$GITHUB_OUTPUT"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Run AI review
         id: ai_review
+        if: steps.determine_type.outputs.skip != 'true'
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           REVIEW_TYPE: ${{ steps.determine_type.outputs.review_type }}
@@ -90,6 +111,7 @@ jobs:
           echo "review_type=$(node -e "const d=require('./ai-suggestions.json'); console.log(d.reviewType)")" >> $GITHUB_OUTPUT
 
       - name: Build issue body and manage issue
+        if: steps.determine_type.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           DRY_RUN: ${{ inputs.dry_run || 'false' }}
@@ -205,7 +227,7 @@ jobs:
           fi
 
       - name: Persist watchlist
-        if: inputs.dry_run != 'true'
+        if: steps.determine_type.outputs.skip != 'true' && inputs.dry_run != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           REVIEW_TYPE: ${{ steps.ai_review.outputs.review_type }}
@@ -247,6 +269,7 @@ jobs:
           fi
 
       - name: Summary
+        if: steps.determine_type.outputs.skip != 'true'
         env:
           SUMMARY_DATE: ${{ steps.ai_review.outputs.run_date }}
           SUMMARY_TYPE: ${{ steps.ai_review.outputs.review_type }}
@@ -257,3 +280,10 @@ jobs:
           echo "- Run date: ${SUMMARY_DATE}" >> $GITHUB_STEP_SUMMARY
           echo "- Review type: ${SUMMARY_TYPE}" >> $GITHUB_STEP_SUMMARY
           echo "- Actionable suggestions: ${SUMMARY_COUNT}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Skipped summary
+        if: steps.determine_type.outputs.skip == 'true'
+        run: |
+          echo "### AI review skipped" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Today is a Monday, but not the 1st or 3rd of the month — no review is scheduled for this week." >> $GITHUB_STEP_SUMMARY
