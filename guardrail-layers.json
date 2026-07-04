@@ -1,6 +1,6 @@
 {
   "schemaVersion": 3,
-  "guardrailVersion": "1.3.3",
+  "guardrailVersion": "1.3.4",
   "description": "Canonical adoption-layer model and risk-tier mapping for the cursor-guardrails template. Single source of truth for /guardrail-upgrade and downstream governance tools such as Throughline. Do not edit by hand — changes must be deliberate and version-bumped. Verified against the actual file tree by .github/scripts/check-manifest-drift.mjs in CI.",
   "source": "https://github.com/AGM82/cursor-guardrails",
   "lastUpdated": "2026-07-04",
@@ -214,6 +214,11 @@
       "schemaVersion": 3,
       "date": "2026-07-04",
       "note": "Adds a new top-level projectProfiles block — the data model for the Layer 0.4 'Project profile' step in guardrail-upgrade.md. Maps project type to active vs inert-until-used domains and reuses the existing riskTiers block for the layer recommendation, so adoption is tailored per project instead of a blanket 'apply all'. Additive schema change (schemaVersion 2 -> 3); guardrailVersion patch bump (the system improved)."
+    },
+    {
+      "schemaVersion": 3,
+      "date": "2026-07-04",
+      "note": "No schema change — documents a /guardrail-upgrade behaviour improvement. Layer 0 (Bootstrap) now refreshes the local template clone with 'git pull --ff-only origin main' before reading any files from it, and falls back to a guardrail-version staleness warning if the pull cannot complete. Closes the gap where TEMPLATE_PATH could silently point at a months-old clone even though the published template had moved on. guardrailVersion patch bump (the system improved)."
     }
   ]
 }
