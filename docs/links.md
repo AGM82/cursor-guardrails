@@ -36,12 +36,12 @@ The playbook is a single-file dashboard (`playbook.html`) hosted on Cloudflare P
 
 ## GitHub — automation workflows
 
-| Workflow                        | Purpose                                                                            | Link                                                                                         |
-| ------------------------------- | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| **CI**                          | Typecheck, lint, test+coverage, build, audit, manifest drift, audit-hook self-test | https://github.com/AGM82/cursor-guardrails/actions/workflows/ci.yml                          |
-| **Bi-weekly AI review**         | AI guardrail suggestions → GitHub issue + watchlist                                | https://github.com/AGM82/cursor-guardrails/actions/workflows/bi-weekly-ai-review.yml         |
-| **Weekly guardrail review**     | Dependency/tooling drift → issue + optional auto-PRs                               | https://github.com/AGM82/cursor-guardrails/actions/workflows/weekly-guardrail-review.yml     |
-| **Propagate guardrail version** | Pushes version bumps to downstream repos (e.g. Throughline)                        | https://github.com/AGM82/cursor-guardrails/actions/workflows/propagate-guardrail-version.yml |
+| Workflow                        | Purpose                                                                                                                                                                              | Link                                                                                         |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| **CI**                          | Typecheck, lint, test+coverage, build, audit, manifest drift, audit-hook self-test, SBOM generation, build provenance attestation, package-signature verification, secret scan, SAST | https://github.com/AGM82/cursor-guardrails/actions/workflows/ci.yml                          |
+| **Bi-weekly AI review**         | AI guardrail suggestions → GitHub issue + watchlist                                                                                                                                  | https://github.com/AGM82/cursor-guardrails/actions/workflows/bi-weekly-ai-review.yml         |
+| **Weekly guardrail review**     | Dependency/tooling drift → issue + optional auto-PRs                                                                                                                                 | https://github.com/AGM82/cursor-guardrails/actions/workflows/weekly-guardrail-review.yml     |
+| **Propagate guardrail version** | Pushes version bumps to downstream repos (e.g. Throughline)                                                                                                                          | https://github.com/AGM82/cursor-guardrails/actions/workflows/propagate-guardrail-version.yml |
 
 ---
 

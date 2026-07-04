@@ -127,7 +127,7 @@ Read the following files from TEMPLATE_PATH and from THIS project. For each file
 
 **Layer 5 — CI pipeline** (merge carefully; check for existing workflow)
 
-- `.github/workflows/ci.yml` — check for: `secret-scan` job, `sast` job, `npm audit` step, `permissions: contents: read`, `concurrency` block
+- `.github/workflows/ci.yml` — check for: `secret-scan` job, `sast` job, `sbom` job, `npm audit` step, `npm audit signatures` step, `attest-build-provenance` step, `permissions: contents: read`, `concurrency` block
 
 ---
 
