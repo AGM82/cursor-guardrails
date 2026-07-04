@@ -67,11 +67,13 @@ jobs:
           node-version-file: .nvmrc
       - name: Generate SBOM
         # --package-lock-only reads package-lock.json directly instead of
-        # walking node_modules via `npm ls`, which sidesteps a known npm
-        # optional-dependency bug (npm/cli#4828) where platform-specific
-        # native bindings (e.g. rolldown's) get reported as "extraneous" or
-        # "invalid" and make `npm ls` — and therefore cyclonedx-npm — fail.
-        run: npx @cyclonedx/cyclonedx-npm@5.0.0 --package-lock-only --output-format JSON --output-file sbom.json
+        # walking node_modules via `npm ls`. --ignore-npm-errors tolerates the
+        # pre-existing eslint-plugin-jsx-a11y / eslint@10 peer-dependency
+        # mismatch documented in 40-tooling-supply-chain.mdc (npm ls flags it
+        # as "invalid" from the lockfile's own peer-dependency metadata, not
+        # from node_modules — the mismatch is real but already a known,
+        # accepted risk, not something this job should fail on).
+        run: npx @cyclonedx/cyclonedx-npm@5.0.0 --package-lock-only --ignore-npm-errors --output-format JSON --output-file sbom.json
       - name: Upload SBOM artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
