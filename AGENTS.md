@@ -45,6 +45,7 @@ switching the primary agent.
 ## Slash commands (type in Cursor chat)
 
 - `/review` — run checks and review staged changes; report by severity before fixing anything
+- `/audit` — whole-repo, point-in-time health audit (code, security, structure, design, docs) — not scoped to a diff
 - `/pr` — confirm checks pass, write a Conventional Commit, push, and open a pull request
 - `/update-deps` — update dependencies one at a time, re-testing after each
 - `/guardrail-upgrade` — compare an existing project against this template, show a gap analysis by layer, and implement approved upgrades

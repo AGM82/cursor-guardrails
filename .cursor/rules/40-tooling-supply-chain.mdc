@@ -13,6 +13,11 @@ alwaysApply: false
 - Install production dependencies with `npm install --save-exact <pkg>` to record the exact resolved version; semver ranges (`^`) remain fine for devDependencies, where drift risk is lower.
 - Before adding any package published after mid-2023, check its provenance attestation on npmjs.com and run `npm audit signatures` — flag any package without a provenance attestation in the plan before installing it. The CI `verify` job also runs `npm audit signatures` on every build.
 
+# Dead code and unused dependencies
+
+- `npm run knip` finds unused files, unused exports, and unused/unlisted npm dependencies — a gap neither ESLint nor `tsc` cover. It is invoked as part of `/audit` (Layer "structural integrity"); it is not a CI gate, so drift between runs is expected and not itself a failure.
+- Before removing anything `knip` flags, confirm it isn't a dynamic import, a framework entry point (e.g. `main.tsx`), or referenced only from config files it doesn't parse.
+
 # Software Bill of Materials (SBOM)
 
 - CI's `sbom` job in `ci.yml` generates a CycloneDX SBOM (`sbom.json`) via `@cyclonedx/cyclonedx-npm` and uploads it as a workflow artifact (90-day retention). Download it from the run's Summary page under Artifacts when a dependency inventory or CVE cross-reference is needed.

@@ -36,12 +36,12 @@ The playbook is a single-file dashboard (`playbook.html`) hosted on Cloudflare P
 
 ## GitHub — automation workflows
 
-| Workflow                        | Purpose                                                                            | Link                                                                                         |
-| ------------------------------- | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| **CI**                          | Typecheck, lint, test+coverage, build, audit, manifest drift, audit-hook self-test | https://github.com/AGM82/cursor-guardrails/actions/workflows/ci.yml                          |
-| **Bi-weekly AI review**         | AI guardrail suggestions → GitHub issue + watchlist                                | https://github.com/AGM82/cursor-guardrails/actions/workflows/bi-weekly-ai-review.yml         |
-| **Weekly guardrail review**     | Dependency/tooling drift → issue + optional auto-PRs                               | https://github.com/AGM82/cursor-guardrails/actions/workflows/weekly-guardrail-review.yml     |
-| **Propagate guardrail version** | Pushes version bumps to downstream repos (e.g. Throughline)                        | https://github.com/AGM82/cursor-guardrails/actions/workflows/propagate-guardrail-version.yml |
+| Workflow                        | Purpose                                                                                                                                                                              | Link                                                                                         |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| **CI**                          | Typecheck, lint, test+coverage, build, audit, manifest drift, audit-hook self-test, SBOM generation, build provenance attestation, package-signature verification, secret scan, SAST | https://github.com/AGM82/cursor-guardrails/actions/workflows/ci.yml                          |
+| **Bi-weekly AI review**         | AI guardrail suggestions → GitHub issue + watchlist                                                                                                                                  | https://github.com/AGM82/cursor-guardrails/actions/workflows/bi-weekly-ai-review.yml         |
+| **Weekly guardrail review**     | Dependency/tooling drift → issue + optional auto-PRs                                                                                                                                 | https://github.com/AGM82/cursor-guardrails/actions/workflows/weekly-guardrail-review.yml     |
+| **Propagate guardrail version** | Pushes version bumps to downstream repos (e.g. Throughline)                                                                                                                          | https://github.com/AGM82/cursor-guardrails/actions/workflows/propagate-guardrail-version.yml |
 
 ---
 
@@ -104,6 +104,7 @@ Type these in Cursor Agent chat (defined in [`.cursor/commands/`](../.cursor/com
 | Command              | Purpose                                                       |
 | -------------------- | ------------------------------------------------------------- |
 | `/review`            | Run checks; report findings by severity before fixing         |
+| `/audit`             | Whole-repo, point-in-time health audit — not scoped to a diff |
 | `/pr`                | Confirm checks, write Conventional Commit, push, open PR      |
 | `/update-deps`       | Update dependencies one at a time with re-testing             |
 | `/guardrail-upgrade` | Gap analysis against this template; implement approved layers |
@@ -134,6 +135,7 @@ npm run typecheck    # TypeScript
 npm run lint         # ESLint
 npm run test         # Vitest (+ coverage thresholds in CI)
 npm run build        # Production build
+npm run knip         # Dead code / unused deps / unused exports (used by /audit)
 ```
 
 Canonical reference files: `src/components/Greeting.tsx`, `src/lib/currency.ts`, and their tests.

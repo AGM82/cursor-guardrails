@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "guardrailVersion": "1.3.1",
+  "guardrailVersion": "1.3.2",
   "description": "Canonical adoption-layer model and risk-tier mapping for the cursor-guardrails template. Single source of truth for /guardrail-upgrade and downstream governance tools such as Throughline. Do not edit by hand — changes must be deliberate and version-bumped. Verified against the actual file tree by .github/scripts/check-manifest-drift.mjs in CI.",
   "source": "https://github.com/AGM82/cursor-guardrails",
   "lastUpdated": "2026-07-04",
@@ -23,6 +23,7 @@
         ".cursor/rules/61-database.mdc",
         ".cursor/rules/62-deployment-observability.mdc",
         ".cursor/rules/90-project-context.mdc",
+        ".cursor/commands/audit.md",
         ".cursor/commands/review.md",
         ".cursor/commands/pr.md",
         ".cursor/commands/update-deps.md",
@@ -128,6 +129,11 @@
       "schemaVersion": 2,
       "date": "2026-06-30",
       "note": "Adds three new rule files to Layer 1 — 60-backend-api.mdc, 61-database.mdc, 62-deployment-observability.mdc — and three new domains (Backend, Database, Deployment), closing the gap where the template had no guidance once a project adds a server, database, or deployment pipeline. guardrailVersion patch bump per the new-rule-file convention."
+    },
+    {
+      "schemaVersion": 2,
+      "date": "2026-07-04",
+      "note": "Adds .cursor/commands/audit.md to Layer 1 — a new /audit command for whole-repo, point-in-time health audits (distinct from the diff-scoped /review and template-comparison /guardrail-upgrade). guardrailVersion patch bump per the new-file-in-Layer-1 convention established for rule files, extended here to command files."
     }
   ]
 }
