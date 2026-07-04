@@ -6,18 +6,24 @@ Audit this project against the cursor-guardrails template, present a gap analysi
 
 ## Layer 0 — Bootstrap (run first, always)
 
-Check whether this project already has `.cursor/commands/guardrail-upgrade.md`.
-
-**If it is missing** (first-time adoption):
-
 1. Ask the user: "What is the full path to your cursor-guardrails template folder?"
    Example: `C:\Users\me\Projects\cursor-guardrails`
-2. Copy the entire `.cursor/commands/` folder from `TEMPLATE_PATH` into this project's `.cursor/commands/`. Create `.cursor/commands/` if it does not exist.
-3. Confirm: "Commands folder bootstrapped. Continuing upgrade…"
+   Store this as **TEMPLATE_PATH** for all steps below.
 
-**If it already exists**, ask for `TEMPLATE_PATH` and continue.
+2. **Verify and refresh the template clone**, so every layer below reads from the latest published guardrails instead of a stale snapshot:
+   - Check whether `TEMPLATE_PATH` exists and is a git repository (contains a `.git` folder).
+   - **If it does not exist, or is not a git repo:** this is a one-time setup gap. Tell the user:
+     > "Your template path isn't a git clone yet. Run this once, then re-run this command:
+     > `git clone https://github.com/AGM82/cursor-guardrails "TEMPLATE_PATH"`
+     > Use a plain clone, not GitHub's 'Use this template' button — that creates a disconnected repo with no upstream link, so it could never receive updates."
+     > Stop here until the user confirms the clone exists, then continue.
+   - **If it exists:** refresh it before reading anything from it: `git -C "TEMPLATE_PATH" pull --ff-only origin main`.
+     - On success, the clone is now current — continue.
+     - **If the pull fails** (offline, uncommitted local edits in the clone, detached HEAD, etc.): do not force, reset, or stash on the user's behalf. Instead, fall back to a staleness check — read `TEMPLATE_PATH/.cursor/guardrail-version` and compare it against the published value at `https://raw.githubusercontent.com/AGM82/cursor-guardrails/main/.cursor/guardrail-version`. If the local clone is behind, warn the user (e.g. "Your template clone is on 1.3.2; the published template is on 1.3.4 — run `git pull` in TEMPLATE_PATH when you can.") and continue using the files as they are on disk.
 
-Store this as **TEMPLATE_PATH** for all steps below.
+3. Check whether this project already has `.cursor/commands/guardrail-upgrade.md`.
+   - **If it is missing** (first-time adoption): copy the entire `.cursor/commands/` folder from `TEMPLATE_PATH` into this project's `.cursor/commands/` (create `.cursor/commands/` if it does not exist), then confirm: "Commands folder bootstrapped. Continuing upgrade…"
+   - **If it already exists**, continue.
 
 > **Windows PowerShell note:** Run commands separately if `&&` fails. Replace `cmd1 && cmd2` with two separate lines.
 
@@ -284,6 +290,7 @@ On future runs, `/guardrail-upgrade` compares this file against `TEMPLATE_PATH/.
 
 ## Hard rules (never break these)
 
+- Treat `TEMPLATE_PATH` as read-only — never create, edit, or delete files inside the template clone itself. This keeps `git pull --ff-only` always able to fast-forward cleanly on the next run.
 - Never copy `src/`, `index.html`, `vite.config.ts`, or any application code into a project that already has its own.
 - Never overwrite a `.env` file or create one with real values.
 - Never remove lines from an existing `.gitignore` — only add.

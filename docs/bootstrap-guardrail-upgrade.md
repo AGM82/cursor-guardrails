@@ -7,6 +7,26 @@ Option A.
 
 ---
 
+## One-time setup — clone the template
+
+All three options below need `TEMPLATE_PATH`: a folder on your machine that is
+a git clone of the `cursor-guardrails` repo itself, separate from the project
+you are upgrading. If you don't have this folder yet, create it once, anywhere
+outside the project you're upgrading:
+
+```
+git clone https://github.com/AGM82/cursor-guardrails
+```
+
+Use a plain clone — **not** GitHub's "Use this template" button. That button
+creates a disconnected copy with no link back to this repo, so it can never
+receive updates with `git pull`. A plain clone can, and both Option A and
+`/guardrail-upgrade` now refresh it automatically (see "Keeping your
+template clone current" below) — you never need to run `git pull` there by
+hand.
+
+---
+
 ## Option A — Copy-paste prompt (works day zero, nothing to install)
 
 Open your existing project in Cursor. Start a new Agent chat and paste this
@@ -19,24 +39,34 @@ Template path:
 C:\Users\andrewM\OneDrive - Lombard Insurance\Documents\Projects\cursor-guardrails
 
 Follow this workflow:
-1. Copy .cursor/commands/ from the template into this project (create the
+1. Verify the template path is a git clone and refresh it so nothing below
+   reads a stale snapshot: run `git -C "TEMPLATE_PATH" pull --ff-only origin
+   main`. If the folder does not exist or is not a git repo, tell me to run
+   `git clone https://github.com/AGM82/cursor-guardrails "TEMPLATE_PATH"`
+   once (not GitHub's "Use this template" button — that can't receive
+   updates), then stop and wait for me to confirm before continuing. If the
+   pull fails for another reason, compare
+   TEMPLATE_PATH/.cursor/guardrail-version against the published version at
+   raw.githubusercontent.com/AGM82/cursor-guardrails/main/.cursor/guardrail-version,
+   warn me if it's behind, and continue anyway.
+2. Copy .cursor/commands/ from the template into this project (create the
    folder if it does not exist).
-2. Capture a pre-upgrade baseline: run typecheck, lint, build, and test
+3. Capture a pre-upgrade baseline: run typecheck, lint, build, and test
    (skip any that do not exist). Save output to .cursor/guardrail-baseline.log.
-3. Commit everything as: chore: snapshot before guardrail upgrade
-4. Ask me 3 quick questions to build a project profile: project type
+4. Commit everything as: chore: snapshot before guardrail upgrade
+5. Ask me 3 quick questions to build a project profile: project type
    (frontend-ui / backend-api / full-stack / library-or-cli /
    script-or-prototype), risk level (Low / Medium / High), and whether I
    already have my own ESLint/Prettier/tsconfig setup. Use
    TEMPLATE_PATH/guardrail-layers.json -> projectProfiles and riskTiers to
    turn my answers into a recommended layer set.
-5. Compare both projects and show a gap analysis table by layer, alongside
-   the recommended layer set from step 4.
-6. Ask me which layers to apply before changing anything.
-7. Never overwrite src/, package.json, or tsconfig.json — merge only.
-8. After the approved layers: run a code compliance audit (Layer 6) and
+6. Compare both projects and show a gap analysis table by layer, alongside
+   the recommended layer set from step 5.
+7. Ask me which layers to apply before changing anything.
+8. Never overwrite src/, package.json, or tsconfig.json — merge only.
+9. After the approved layers: run a code compliance audit (Layer 6) and
    report Blocker / Should-fix / Nit findings. Fix blockers before finishing.
-9. Show the Layer 7 governance checklist.
+10. Show the Layer 7 governance checklist.
 ```
 
 This produces the same result as `/guardrail-upgrade` once Layer 1 is installed.
@@ -91,15 +121,41 @@ Write-Host "Commands bootstrapped. Now type /guardrail-upgrade in Cursor chat."
 
 After bootstrapping, `/guardrail-upgrade` will:
 
-1. Run a pre-upgrade baseline (saves current typecheck/lint errors)
-2. Snapshot git
-3. Ask 3 quick project-profile questions (type, risk, existing toolchain)
+1. Refresh your template clone (`git pull --ff-only`) before reading
+   anything from it, so you always upgrade from the latest published
+   template — see "Keeping your template clone current" below
+2. Run a pre-upgrade baseline (saves current typecheck/lint errors)
+3. Snapshot git
+4. Ask 3 quick project-profile questions (type, risk, existing toolchain)
    and recommend a tailored layer set — not every project needs the same
    layers
-4. Compare the project against the template and show a gap analysis
-5. Apply approved layers — infrastructure only, never touching your `src/`
-6. Run a code compliance audit (Layer 6) against your own code
-7. Present a governance activation checklist (Layer 7)
+5. Compare the project against the template and show a gap analysis
+6. Apply approved layers — infrastructure only, never touching your `src/`
+7. Run a code compliance audit (Layer 6) against your own code
+8. Present a governance activation checklist (Layer 7)
+
+---
+
+## Keeping your template clone current
+
+You do not need to remember to update `TEMPLATE_PATH` yourself. Both Option A
+and the installed `/guardrail-upgrade` command run `git -C "TEMPLATE_PATH"
+pull --ff-only origin main` at the very start, before copying or reading
+anything from it.
+
+If that pull can't complete — you're offline, there are uncommitted edits in
+the clone, or it's on a detached HEAD — the agent will not force or reset
+anything on your behalf. Instead it falls back to comparing
+`TEMPLATE_PATH/.cursor/guardrail-version` against the published version and
+warns you if your clone is behind, then continues with whatever is on disk.
+If you see that warning, run `git pull` in `TEMPLATE_PATH` yourself when
+convenient and re-run the upgrade.
+
+This only works if `TEMPLATE_PATH` is a plain clone with `origin` pointing at
+`AGM82/cursor-guardrails` (see "One-time setup" above) — a "Use this
+template" copy has no upstream to pull from. Treat the clone as read-only:
+don't edit files inside it, so the fast-forward pull always succeeds
+cleanly.
 
 ---
 

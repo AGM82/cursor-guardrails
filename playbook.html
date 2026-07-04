@@ -346,12 +346,14 @@
 
     <div id="tab-existing-project" role="tabpanel" style="display:none;">
       <h3>Adopt on an existing project — quickstart</h3>
-      <p style="font-size:12px; color:var(--text2); background:var(--surface2); border-radius:var(--radius-sm); padding:10px 12px; margin-bottom:14px;"><strong>Two folders are involved:</strong> the project you want to upgrade (call it <strong>Project X</strong>) and a separate local clone of the <em>cursor-guardrails template repo itself</em>. The template clone is only there so the agent has something to copy files from — you never open it or work inside it. If you haven't cloned the template yet, do that once using the same steps as the "Start a new project" tab.</p>
+      <p style="font-size:12px; color:var(--text2); background:var(--surface2); border-radius:var(--radius-sm); padding:10px 12px; margin-bottom:14px;"><strong>Two folders are involved:</strong> the project you want to upgrade (call it <strong>Project X</strong>) and a separate local clone of the <em>cursor-guardrails template repo itself</em>. The template clone is only there so the agent has something to copy files from — you never open it or work inside it.</p>
+      <p style="font-size:12px; color:var(--text2); background:var(--surface2); border-radius:var(--radius-sm); padding:10px 12px; margin-bottom:14px;"><strong>Don't have the template clone yet?</strong> Create it once, anywhere outside Project X:<br><code>git clone https://github.com/AGM82/cursor-guardrails</code><br>Use a plain clone — <strong>not</strong> the "Use this template" button from the other tab. That button makes a disconnected copy with no link back to this repo, so it could never receive updates; a plain clone can.</p>
+      <p style="font-size:12px; color:var(--text2); background:var(--surface2); border-radius:var(--radius-sm); padding:10px 12px; margin-bottom:14px;"><strong>Staying current:</strong> the version shown at the top of this page is always the latest published template version. Your local clone only reflects that once you pull it — but you don't have to do this by hand: the Bootstrap prompt below and the <code>/guardrail-upgrade</code> command both refresh your clone automatically (<code>git pull --ff-only</code>) at the start of every run, before copying anything from it.</p>
       <table>
         <thead><tr><th>#</th><th>Step</th><th>Detail</th></tr></thead>
         <tbody>
           <tr><td>1</td><td><strong>Fill in the template path</strong></td><td>At the top of this page, set <strong>"Template path on this machine"</strong> to where you cloned <code>cursor-guardrails</code> (not Project X). The prompt below is pre-filled from it.</td></tr>
-          <tr><td>2</td><td><strong>Paste the prompt</strong></td><td>Open Project X in Cursor, start a new Agent chat, and paste the <strong>Bootstrap prompt</strong> below. It works day zero — nothing needs to be in place first.</td></tr>
+          <tr><td>2</td><td><strong>Paste the prompt</strong></td><td>Open Project X in Cursor, start a new Agent chat, and paste the <strong>Bootstrap prompt</strong> below. It works day zero — nothing needs to be in place first, and it refreshes your template clone before using it.</td></tr>
           <tr><td>3</td><td><strong>Answer 3 quick questions, then approve layers</strong></td><td>The agent asks about the project's type, risk level, and existing toolchain, then recommends which layers to apply based on the answers — not everything, and not identical for every project. Reply <code>all</code> instead if you'd rather apply everything in one pass.</td></tr>
         </tbody>
       </table>
@@ -364,15 +366,16 @@ Template path:
 TEMPLATE_PATH_PLACEHOLDER
 
 Follow this workflow:
-1. Copy .cursor/commands/ from the template into this project (create the folder if it does not exist).
-2. Capture a pre-upgrade baseline: run typecheck, lint, build, and test (skip any that do not exist). Save output to .cursor/guardrail-baseline.log.
-3. Commit everything as: chore: snapshot before guardrail upgrade
-4. Ask me 3 quick questions to build a project profile: project type (frontend-ui / backend-api / full-stack / library-or-cli / script-or-prototype), risk level (Low / Medium / High), and whether I already have my own ESLint/Prettier/tsconfig setup. Use TEMPLATE_PATH/guardrail-layers.json -> projectProfiles and riskTiers to turn my answers into a recommended layer set.
-5. Compare both projects and show a gap analysis table by layer, alongside the recommended layer set from step 4.
-6. Ask me which layers to apply before changing anything.
-7. Never overwrite src/, package.json, or tsconfig.json — merge only.
-8. After the approved layers: run a code compliance audit (Layer 6) and report Blocker / Should-fix / Nit findings. Fix blockers before finishing.
-9. Show the Layer 7 governance checklist.</pre>
+1. Verify the template path is a git clone and refresh it so nothing below reads a stale snapshot: run `git -C "TEMPLATE_PATH" pull --ff-only origin main`. If the folder does not exist or is not a git repo, tell me to run `git clone https://github.com/AGM82/cursor-guardrails "TEMPLATE_PATH"` once (not GitHub's "Use this template" button — that can't receive updates), then stop and wait for me to confirm before continuing. If the pull fails for another reason, compare TEMPLATE_PATH/.cursor/guardrail-version against the published version at raw.githubusercontent.com/AGM82/cursor-guardrails/main/.cursor/guardrail-version, warn me if it's behind, and continue anyway.
+2. Copy .cursor/commands/ from the template into this project (create the folder if it does not exist).
+3. Capture a pre-upgrade baseline: run typecheck, lint, build, and test (skip any that do not exist). Save output to .cursor/guardrail-baseline.log.
+4. Commit everything as: chore: snapshot before guardrail upgrade
+5. Ask me 3 quick questions to build a project profile: project type (frontend-ui / backend-api / full-stack / library-or-cli / script-or-prototype), risk level (Low / Medium / High), and whether I already have my own ESLint/Prettier/tsconfig setup. Use TEMPLATE_PATH/guardrail-layers.json -> projectProfiles and riskTiers to turn my answers into a recommended layer set.
+6. Compare both projects and show a gap analysis table by layer, alongside the recommended layer set from step 5.
+7. Ask me which layers to apply before changing anything.
+8. Never overwrite src/, package.json, or tsconfig.json — merge only.
+9. After the approved layers: run a code compliance audit (Layer 6) and report Blocker / Should-fix / Nit findings. Fix blockers before finishing.
+10. Show the Layer 7 governance checklist.</pre>
         <button class="copy-btn" onclick="copyEl('bootstrap-prompt', this)">Copy</button>
       </div>
 
@@ -383,7 +386,7 @@ Follow this workflow:
       <table>
         <thead><tr><th>Layer</th><th>What happens</th><th>Risk</th></tr></thead>
         <tbody>
-          <tr><td><strong>0 — Bootstrap</strong></td><td>Copy <code>.cursor/commands/</code> from template if missing</td><td><span class="badge badge-safe">Safe</span></td></tr>
+          <tr><td><strong>0 — Bootstrap</strong></td><td>Refresh the template clone (<code>git pull --ff-only</code>), then copy <code>.cursor/commands/</code> from it if missing</td><td><span class="badge badge-safe">Safe</span></td></tr>
           <tr><td><strong>0.5 — Baseline</strong></td><td>Capture current typecheck/lint errors before any changes</td><td><span class="badge badge-safe">Safe</span></td></tr>
           <tr><td><strong>0.6 — Snapshot</strong></td><td>Git commit as a safe undo point</td><td><span class="badge badge-safe">Safe</span></td></tr>
           <tr><td><strong>0.4 — Project profile</strong></td><td>3 questions (type, risk, existing toolchain) recommend a tailored layer set instead of "apply all"</td><td><span class="badge badge-safe">Safe</span></td></tr>
@@ -1495,7 +1498,7 @@ function restoreHealth() {
 
 // ─── Prompt library ───────────────────────────────────────────────────────────
 const PROMPTS = [
-  { category: 'Adoption', name: 'Bootstrap existing project', desc: 'Day-zero prompt to adopt guardrails on any project — same flow as the "Adopt on existing project" tab. Template path is pre-filled.', command: `Upgrade this project from the cursor-guardrails template.\n\nTemplate path:\nTEMPLATE_PATH_PLACEHOLDER\n\nFollow /guardrail-upgrade Layers 0–7: bootstrap, baseline, snapshot, project profile (type, risk, existing toolchain — recommends a tailored layer set), gap analysis, upgrade, code audit, governance.` },
+  { category: 'Adoption', name: 'Bootstrap existing project', desc: 'Day-zero prompt to adopt guardrails on any project — same flow as the "Adopt on existing project" tab. Template path is pre-filled.', command: `Upgrade this project from the cursor-guardrails template.\n\nTemplate path:\nTEMPLATE_PATH_PLACEHOLDER\n\nFollow /guardrail-upgrade Layers 0–7: bootstrap (refreshes the template clone with git pull --ff-only first), baseline, snapshot, project profile (type, risk, existing toolchain — recommends a tailored layer set), gap analysis, upgrade, code audit, governance.` },
   { category: 'Adoption', name: 'Check guardrail version drift', desc: 'Ask the agent to compare this project\'s guardrail version against the template.', command: `Check whether this project's guardrail version (in .cursor/guardrail-version) is current.\n\nTemplate path: TEMPLATE_PATH_PLACEHOLDER\n\nCompare .cursor/guardrail-version here vs TEMPLATE_PATH_PLACEHOLDER/.cursor/guardrail-version and report which layers may be outdated.` },
   { category: 'Review', name: 'POPIA compliance audit', desc: 'Ask the agent to audit a file or directory for personal data handling issues.', command: `Audit the following file(s) for POPIA compliance:\n\n[LIST FILES OR DIRECTORIES]\n\nCheck against .cursor/rules/10-security-popia.mdc:\n- No personal data in logs\n- Input validated at trust boundaries\n- No secrets in source\n- Parameterised queries only\n\nReport findings as: Blocker / Should-fix / Nit` },
   { category: 'Review', name: 'PR description review', desc: 'Ask the agent to review a draft PR description before posting.', command: `Review this pull request description before I post it:\n\n[PASTE PR TITLE AND BODY]\n\nCheck:\n1. Does the title follow Conventional Commits format?\n2. Does the body clearly explain what changed and why?\n3. Are security and data checkboxes appropriate?\n4. Are follow-ups noted?` },
