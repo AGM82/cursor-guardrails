@@ -51,6 +51,7 @@ Prose rules are _advisory_ — an agent can drift from them after a few turns. L
 5. Fill in `.cursor/rules/90-project-context.mdc` and the other per-project items above.
 6. Commit. Husky, commitlint, and the Cursor hooks are active from the first commit.
 7. On GitHub: enable branch protection on `main` (see **Branch protection** below).
+8. To receive future guardrail improvements in this project, keep a separate **reference clone** of `cursor-guardrails` (a plain `git clone`, not another "Use this template") and run `/guardrail-upgrade` inside this project later — see **Existing project? Start here** below; the same tool applies here too.
 
 This template ships a minimal working React + TypeScript + Vite + Tailwind CSS v4 + shadcn/ui app (`index.html`, `src/`) with an example component, a utility, and tests, so `dev`/`build`/`test` work out of the box. The canonical component (`src/components/Greeting.tsx`) demonstrates the foundational tier in practice. Replace the demo with your real application.
 
@@ -58,7 +59,11 @@ This template ships a minimal working React + TypeScript + Vite + Tailwind CSS v
 
 Adopt the guardrails incrementally without touching your application code.
 
+**You'll need a reference clone:** a plain `git clone https://github.com/AGM82/cursor-guardrails`, kept anywhere outside the project you're upgrading — not GitHub's "Use this template" button, which is only for starting a brand-new project (see **Setup (new project)** above) and creates a disconnected copy with no upstream link. The agent reads from this reference clone and refreshes it automatically (`git pull --ff-only`) before every run.
+
 **Quick start (day zero, nothing to copy):** Open the project in Cursor, start an Agent chat, and paste the bootstrap prompt from [`docs/bootstrap-guardrail-upgrade.md`](docs/bootstrap-guardrail-upgrade.md). The agent will copy the command files, capture a baseline, and walk you through the gap analysis.
+
+**Need a documented risk tier or governance evidence instead of the self-serve profile questions?** See [`docs/connect-guardrails.md`](docs/connect-guardrails.md) for adopting via Throughline (or another governance tool) instead.
 
 **Once `.cursor/commands/` is in place**, use `/guardrail-upgrade` in Agent chat for all future runs.
 
@@ -86,6 +91,8 @@ See [`docs/guardrail-upgrade-observations.md`](docs/guardrail-upgrade-observatio
 **Template versioning:** after a successful upgrade, a `.cursor/guardrail-version` file is written to track which template release was applied. Future runs flag layers that have drifted. Tag your own template releases as `guardrail-v1.1.0` on GitHub to participate in this system.
 
 **Machine-readable layer model:** [`guardrail-layers.json`](./guardrail-layers.json) at the repo root encodes the adoption-layer model and risk-tier mapping as a versioned artefact. Downstream governance tools (such as Throughline) vendor this file and receive automatic refresh PRs when it changes. See [`docs/guardrail-layers.md`](./docs/guardrail-layers.md) for the consumption pattern and schema reference.
+
+**Connecting to Throughline (or another governance tool):** if a project needs a documented risk tier and governance evidence rather than the self-serve 3-question profile, see [`docs/connect-guardrails.md`](./docs/connect-guardrails.md) for the direct-vs-Throughline decision and step-by-step for both, and [`docs/project-lifecycle.md`](./docs/project-lifecycle.md) for the full build-and-maintain lifecycle this fits into.
 
 ## GitHub template (maintainers, one-time)
 

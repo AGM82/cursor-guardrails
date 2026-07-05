@@ -10,7 +10,7 @@ Audit this project against the cursor-guardrails template, present a gap analysi
    Example: `C:\Users\me\Projects\cursor-guardrails`
    Store this as **TEMPLATE_PATH** for all steps below.
 
-2. **Verify and refresh the template clone**, so every layer below reads from the latest published guardrails instead of a stale snapshot:
+2. **Verify and refresh the reference clone**, so every layer below reads from the latest published guardrails instead of a stale snapshot:
    - Check whether `TEMPLATE_PATH` exists and is a git repository (contains a `.git` folder).
    - **If it does not exist, or is not a git repo:** this is a one-time setup gap. Tell the user:
      > "Your template path isn't a git clone yet. Run this once, then re-run this command:
@@ -19,7 +19,7 @@ Audit this project against the cursor-guardrails template, present a gap analysi
      > Stop here until the user confirms the clone exists, then continue.
    - **If it exists:** refresh it before reading anything from it: `git -C "TEMPLATE_PATH" pull --ff-only origin main`.
      - On success, the clone is now current — continue.
-     - **If the pull fails** (offline, uncommitted local edits in the clone, detached HEAD, etc.): do not force, reset, or stash on the user's behalf. Instead, fall back to a staleness check — read `TEMPLATE_PATH/.cursor/guardrail-version` and compare it against the published value at `https://raw.githubusercontent.com/AGM82/cursor-guardrails/main/.cursor/guardrail-version`. If the local clone is behind, warn the user (e.g. "Your template clone is on 1.3.2; the published template is on 1.3.4 — run `git pull` in TEMPLATE_PATH when you can.") and continue using the files as they are on disk.
+     - **If the pull fails** (offline, uncommitted local edits in the clone, detached HEAD, etc.): do not force, reset, or stash on the user's behalf. Instead, fall back to a staleness check — read `TEMPLATE_PATH/.cursor/guardrail-version` and compare it against the published value at `https://raw.githubusercontent.com/AGM82/cursor-guardrails/main/.cursor/guardrail-version`. If the local clone is behind, warn the user (e.g. "Your reference clone is on 1.3.2; the published template is on 1.3.5 — run `git pull` in TEMPLATE_PATH when you can.") and continue using the files as they are on disk.
 
 3. Check whether this project already has `.cursor/commands/guardrail-upgrade.md`.
    - **If it is missing** (first-time adoption): copy the entire `.cursor/commands/` folder from `TEMPLATE_PATH` into this project's `.cursor/commands/` (create `.cursor/commands/` if it does not exist), then confirm: "Commands folder bootstrapped. Continuing upgrade…"
@@ -71,11 +71,32 @@ git commit -m "chore: initial commit before guardrails"
 
 ## Layer 0.4 — Project profile
 
-Not every project has the same needs. Before running the gap analysis, ask the
-user 3 quick questions so the layer recommendation is tailored instead of a
-blanket "apply everything." The canonical questions, type-to-domain mapping,
-and risk-to-layer mapping live in `guardrail-layers.json` → `projectProfiles`
-(reusing the existing `riskTiers` block — do not invent a new layer mapping).
+Not every project has the same needs. Before running the gap analysis, the
+layer recommendation needs to be tailored instead of a blanket "apply
+everything." There are two ways this happens — check for a prescription
+first, and only fall back to asking questions if there isn't one.
+
+### Step 1 — Check for a Throughline (or other governance tool) prescription
+
+Look for `guardrail-prescription.json` at the project root, then
+`.cursor/guardrail-prescription.json`. See `TEMPLATE_PATH/docs/guardrail-prescription.md`
+for the full contract.
+
+- **If found and `contractVersion` is `1`:**
+  1. Compare its `guardrailVersion` against `TEMPLATE_PATH/.cursor/guardrail-version`. If they differ, warn the user (e.g. "This prescription was classified against v1.3.4; the reference clone is on v1.3.5 — consider re-running Throughline to re-certify.") and continue anyway — a stale prescription is still a reasonable default.
+  2. Announce it: "Using a prescription from `<source>`: tier `<tier>` → layers `<requiredLayers>`, classified `<classifiedAt>`." Show `rationale` if present.
+  3. Set **RECOMMENDED_LAYERS** to its `requiredLayers` and **skip Step 2** (the 3 questions) entirely.
+  4. Do not write to or modify this file — it is an input the project owns, not an output of this command.
+- **If found but `contractVersion` is not recognised:** warn ("Unrecognised prescription contractVersion — falling back to the standard profile questions.") and proceed to Step 2.
+- **If not found:** proceed to Step 2.
+
+### Step 2 — Self-serve project profile (only if no prescription was used)
+
+Ask the user 3 quick questions so the layer recommendation is tailored
+instead of a blanket "apply everything." The canonical questions,
+type-to-domain mapping, and risk-to-layer mapping live in
+`guardrail-layers.json` → `projectProfiles` (reusing the existing
+`riskTiers` block — do not invent a new layer mapping).
 
 Ask:
 
@@ -179,7 +200,7 @@ Group rows by layer. Show a summary line per layer (e.g. "Layer 1: 3 missing, 2 
 
 **Do not make any changes yet.** Ask the user:
 
-> "Which layers would you like to upgrade? Enter layer numbers (e.g. `1 2 3`) or `all`. Based on your answers in Layer 0.4, **RECOMMENDED_LAYERS** is recommended for a project at this risk level — reply `all` to go further than that."
+> "Which layers would you like to upgrade? Enter layer numbers (e.g. `1 2 3`) or `all`. Based on Layer 0.4 (the prescription, if one was found, otherwise your answers), **RECOMMENDED_LAYERS** is recommended for a project at this risk level — reply `all` to go further than that."
 
 ---
 
@@ -290,7 +311,8 @@ On future runs, `/guardrail-upgrade` compares this file against `TEMPLATE_PATH/.
 
 ## Hard rules (never break these)
 
-- Treat `TEMPLATE_PATH` as read-only — never create, edit, or delete files inside the template clone itself. This keeps `git pull --ff-only` always able to fast-forward cleanly on the next run.
+- Treat `TEMPLATE_PATH` as read-only — never create, edit, or delete files inside the reference clone itself. This keeps `git pull --ff-only` always able to fast-forward cleanly on the next run.
+- Treat `guardrail-prescription.json` (if present) as read-only too — never create, edit, or delete it. It is an input from Throughline or another governance tool, not an output of this command.
 - Never copy `src/`, `index.html`, `vite.config.ts`, or any application code into a project that already has its own.
 - Never overwrite a `.env` file or create one with real values.
 - Never remove lines from an existing `.gitignore` — only add.
