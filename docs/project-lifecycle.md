@@ -101,13 +101,16 @@ Keep the project current with dependencies and the guardrail standard, indefinit
 
 `guardrail-prescription.json` (see [`docs/guardrail-prescription.md`](./guardrail-prescription.md)) is what lets Stage 1's risk classification carry forward into every later stage's gate, instead of being decided once and forgotten. It is deliberately the first piece built — every later stage depends on the project having a tier and layer set in the first place.
 
-## Future option (deferred, not built yet)
+## Machine-readable stage detection
 
-The 8 stages above could be encoded as an additive `lifecycleStages` block in [`guardrail-layers.json`](../guardrail-layers.json), giving Throughline (or any downstream tool) a single machine-readable source for the stage model instead of re-describing it in prose. Not done in this pass — the stage model ships as documentation first; encoding it is a natural follow-up once a downstream tool actually needs to consume it programmatically.
+The 8 stages above are also encoded as data, in [`guardrail-layers.json`](../guardrail-layers.json) under `lifecycleStages` — this is the canonical source; the prose above is the human-readable explanation of the same model. Each stage lists `detectionSignals`: deterministic GitHub facts (check-run results, PR review state, merge status) that indicate a project has reached that stage. `lifecycleStages.ciCheckNames` pins the exact check-run names this template's own CI produces (`Typecheck, lint, test, build`, `Secret scan (gitleaks)`, `SAST (Semgrep OWASP Top Ten)`), so a downstream tool detecting stage progression (e.g. Throughline's GitHub App integration — see [`docs/throughline-github-app-prompt.md`](./throughline-github-app-prompt.md)) keys off real, stable names instead of guessing or hardcoding a second copy.
+
+This detection is **read-only and deterministic by design** — same rule as the deterministic-core rule above: which stage a project is in is derived from facts (a check run concluded `success`, a PR has an approving review), never from an AI's read of the code or commit messages.
 
 ## See also
 
-- [`docs/connect-guardrails.md`](./connect-guardrails.md) — Path A vs Path B, step by step
+- [`docs/connect-guardrails.md`](./connect-guardrails.md) — Path A vs Path B (and Path B+), step by step
 - [`docs/guardrail-prescription.md`](./guardrail-prescription.md) — the Stage 1 → later-stages connector
 - [`docs/throughline-lifecycle-prompt.md`](./throughline-lifecycle-prompt.md) — aligning Throughline to this model
+- [`docs/throughline-github-app-prompt.md`](./throughline-github-app-prompt.md) — live stage detection via a GitHub App
 - [`README.md`](../README.md) — the guardrail tiers referenced throughout the stages above

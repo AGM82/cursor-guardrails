@@ -15,6 +15,8 @@ There are two ways to get the cursor-guardrails standard onto a project ("Projec
 
 Path B is Path A with Throughline supplying the profile instead of the 3 questions — see "How the two relate" below. If you are not using Throughline, use Path A; there is no wrong choice, only a question of whether you need Throughline's classification layered on top.
 
+There is also an optional **Path B+ — deep integration**: on top of Path B's one-time prescription, Throughline can install a GitHub App on Project X to keep watching it after the prescription is applied — see "Path B+ — deep integration (GitHub App)" below. Skip it unless you specifically need live status, not just a one-time classification.
+
 ```mermaid
 flowchart TD
   choose{"Need a risk tier,\ngovernance evidence,\nor CTO story?"}
@@ -22,6 +24,8 @@ flowchart TD
   choose -->|Yes| pathB["Path B - Via Throughline\nclassify -> prescription -> /guardrail-upgrade"]
   pathA --> projX["Project X, aligned + versioned"]
   pathB --> projX
+  pathB -.->|optional| pathBplus["Path B+ - GitHub App\nlive health + stage monitoring"]
+  pathBplus -.-> projX
 ```
 
 ---
@@ -55,6 +59,26 @@ Both paths end up running the exact same executor (`/guardrail-upgrade`, reading
 
 Nothing about the guardrail files themselves — rules, hooks, CI, toolchain — ever flows through Throughline. Those always come directly from the reference clone. Throughline only ever supplies the _prescription_ (which layers, and why), never the _files_.
 
+## Path B+ — deep integration (GitHub App)
+
+Path B gives Throughline a one-time snapshot: a tier and a required-layer list, frozen at the moment of classification. It says nothing about what happens to Project X afterwards. Path B+ closes that gap — Throughline installs a GitHub App on Project X and keeps watching it, so a stale prescription (or a project that quietly drifted from its own gates) is visible instead of assumed.
+
+**What it adds, concretely:** live status for two kinds of signal, both deterministic — never an AI's read of the code:
+
+- **Health signals** — the same facts your CI already produces: `Typecheck, lint, test, build`, `Secret scan (gitleaks)`, and `SAST (Semgrep OWASP Top Ten)` check-run results, plus `.cursor/guardrail-version` drift against the latest published template version.
+- **Lifecycle-stage progression** — which of the 8 stages in [`docs/project-lifecycle.md`](./project-lifecycle.md) the project is currently in, derived from check-run results, PR review state, and merge status. The exact detection rules are data, not prose — see `lifecycleStages` in [`guardrail-layers.json`](../guardrail-layers.json), so Throughline and this template share one definition instead of two that can drift apart.
+
+**Why a GitHub App, not a simpler webhook or a CI-push step:** a GitHub App is the only mechanism that needs **zero changes to Project X's own CI or repo** — it reads existing check runs, PRs, and commits directly via GitHub's API once installed. A CI-push step would need every project to add a "report to Throughline" step; a plain webhook still needs an installation step per repo. The App is the closest integration GitHub supports for this, at the cost of more setup on Throughline's side (see below).
+
+**What it does _not_ do:** write anything back to Project X, influence a risk tier or required-layer list (that stays Path B's job), or replace `guardrail-prescription.json` — the App supplements the one-time prescription with an ongoing status, it doesn't replace it.
+
+**Setup, at a glance** (full technical build steps are in [`docs/throughline-github-app-prompt.md`](./throughline-github-app-prompt.md), written for Throughline's own Cursor session, not for Project X):
+
+1. A human with admin rights registers a GitHub App (read-only: Contents, Pull requests, Checks, Metadata) — this step cannot be automated.
+2. The App is installed on Project X specifically — always an explicit, visible, per-repo opt-in, never automatic or org-wide.
+3. GitHub sends webhooks to a new Throughline endpoint on push, PR, and check events; Throughline verifies the signature and stores only the deterministic facts above.
+4. A pure stage-mapping function (no AI, tested like `classifyRisk()`) turns those facts into "which stage is this project in," shown on a Throughline dashboard.
+
 ## New project vs. adopting on an existing one
 
 If you are starting a brand-new project rather than adopting on Project X, use GitHub's **Use this template** button instead of a plain clone — see the "Start a new project" tab in the playbook, or the README's "Setup (new project)" section. That creates your own independent repo with no live link back to `cursor-guardrails`, which is correct for a new project. To receive future guardrail improvements in that new project later, keep a separate reference clone (as in Path A step 1) and run `/guardrail-upgrade` inside it — the same tool described above.
@@ -64,5 +88,6 @@ If you are starting a brand-new project rather than adopting on Project X, use G
 - [`docs/guardrail-prescription.md`](./guardrail-prescription.md) — the `guardrail-prescription.json` contract
 - [`docs/bootstrap-guardrail-upgrade.md`](./bootstrap-guardrail-upgrade.md) — day-zero bootstrap prompt (Path A)
 - [`docs/throughline-lifecycle-prompt.md`](./throughline-lifecycle-prompt.md) — aligning Throughline to emit the prescription (Path B)
-- [`docs/project-lifecycle.md`](./project-lifecycle.md) — the wider build/maintain lifecycle both paths feed into
+- [`docs/throughline-github-app-prompt.md`](./throughline-github-app-prompt.md) — building the GitHub App integration (Path B+)
+- [`docs/project-lifecycle.md`](./project-lifecycle.md) — the wider build/maintain lifecycle both paths feed into, including the `lifecycleStages` detection model
 - [`docs/guardrail-layers.md`](./guardrail-layers.md) — the manifest both Throughline and `/guardrail-upgrade` read from

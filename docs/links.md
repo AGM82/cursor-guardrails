@@ -85,21 +85,22 @@ Integration prompt for Throughline: [docs/throughline-integration-prompt.md](./t
 
 ## In-repo documentation
 
-| Doc                                                                           | Contents                                                         |
-| ----------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| [README.md](../README.md)                                                     | Template overview, tiers, setup, branch protection               |
-| [AGENTS.md](../AGENTS.md)                                                     | Cross-tool agent entry point (always-on summary)                 |
-| [docs/connect-guardrails.md](./connect-guardrails.md)                         | Direct vs Throughline: step-by-step for both connection paths    |
-| [docs/bootstrap-guardrail-upgrade.md](./bootstrap-guardrail-upgrade.md)       | Day-zero prompt for adopting guardrails on an existing project   |
-| [docs/guardrail-prescription.md](./guardrail-prescription.md)                 | `guardrail-prescription.json` — the Throughline handoff contract |
-| [docs/project-lifecycle.md](./project-lifecycle.md)                           | Two-track SDLC lifecycle model (Build once, Maintain forever)    |
-| [docs/throughline-lifecycle-prompt.md](./throughline-lifecycle-prompt.md)     | Prompt aligning Throughline with the prescription + lifecycle    |
-| [docs/guardrail-upgrade-observations.md](./guardrail-upgrade-observations.md) | Lessons from a real adoption                                     |
-| [docs/guardrail-layers.md](./guardrail-layers.md)                             | `guardrail-layers.json` schema and consumption                   |
-| [docs/cloudflare-setup.md](./cloudflare-setup.md)                             | Playbook hosting + Cloudflare Access                             |
-| [docs/user-level-rule.md](./user-level-rule.md)                               | Cursor user-level rule text (Settings → Rules)                   |
-| [CONTRIBUTING.md](../CONTRIBUTING.md)                                         | Contribution guidelines                                          |
-| [SECURITY.md](../SECURITY.md)                                                 | Security policy and reporting                                    |
+| Doc                                                                           | Contents                                                           |
+| ----------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| [README.md](../README.md)                                                     | Template overview, tiers, setup, branch protection                 |
+| [AGENTS.md](../AGENTS.md)                                                     | Cross-tool agent entry point (always-on summary)                   |
+| [docs/connect-guardrails.md](./connect-guardrails.md)                         | Direct vs Throughline: step-by-step for both connection paths      |
+| [docs/bootstrap-guardrail-upgrade.md](./bootstrap-guardrail-upgrade.md)       | Day-zero prompt for adopting guardrails on an existing project     |
+| [docs/guardrail-prescription.md](./guardrail-prescription.md)                 | `guardrail-prescription.json` — the Throughline handoff contract   |
+| [docs/project-lifecycle.md](./project-lifecycle.md)                           | Two-track SDLC lifecycle model (Build once, Maintain forever)      |
+| [docs/throughline-lifecycle-prompt.md](./throughline-lifecycle-prompt.md)     | Prompt aligning Throughline with the prescription + lifecycle      |
+| [docs/throughline-github-app-prompt.md](./throughline-github-app-prompt.md)   | Prompt building the Path B+ GitHub App live-monitoring integration |
+| [docs/guardrail-upgrade-observations.md](./guardrail-upgrade-observations.md) | Lessons from a real adoption                                       |
+| [docs/guardrail-layers.md](./guardrail-layers.md)                             | `guardrail-layers.json` schema and consumption                     |
+| [docs/cloudflare-setup.md](./cloudflare-setup.md)                             | Playbook hosting + Cloudflare Access                               |
+| [docs/user-level-rule.md](./user-level-rule.md)                               | Cursor user-level rule text (Settings → Rules)                     |
+| [CONTRIBUTING.md](../CONTRIBUTING.md)                                         | Contribution guidelines                                            |
+| [SECURITY.md](../SECURITY.md)                                                 | Security policy and reporting                                      |
 
 ---
 
