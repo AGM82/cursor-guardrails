@@ -19,10 +19,11 @@ git clone https://github.com/AGM82/cursor-guardrails
 ```
 
 Use a plain clone — **not** GitHub's "Use this template" button. That button
-creates a disconnected copy with no link back to this repo, so it can never
-receive updates with `git pull`. A plain clone can, and both Option A and
+is for starting a brand-new project; it creates a disconnected copy with no
+link back to this repo, so it can never receive updates with `git pull`. A
+plain clone — a **reference clone** — stays linked, and both Option A and
 `/guardrail-upgrade` now refresh it automatically (see "Keeping your
-template clone current" below) — you never need to run `git pull` there by
+reference clone current" below) — you never need to run `git pull` there by
 hand.
 
 ---
@@ -54,8 +55,10 @@ Follow this workflow:
 3. Capture a pre-upgrade baseline: run typecheck, lint, build, and test
    (skip any that do not exist). Save output to .cursor/guardrail-baseline.log.
 4. Commit everything as: chore: snapshot before guardrail upgrade
-5. Ask me 3 quick questions to build a project profile: project type
-   (frontend-ui / backend-api / full-stack / library-or-cli /
+5. Check for guardrail-prescription.json (project root, then .cursor/) — if
+   found, use its tier and requiredLayers directly and skip the questions
+   below. Otherwise ask me 3 quick questions to build a project profile:
+   project type (frontend-ui / backend-api / full-stack / library-or-cli /
    script-or-prototype), risk level (Low / Medium / High), and whether I
    already have my own ESLint/Prettier/tsconfig setup. Use
    TEMPLATE_PATH/guardrail-layers.json -> projectProfiles and riskTiers to
@@ -121,14 +124,15 @@ Write-Host "Commands bootstrapped. Now type /guardrail-upgrade in Cursor chat."
 
 After bootstrapping, `/guardrail-upgrade` will:
 
-1. Refresh your template clone (`git pull --ff-only`) before reading
+1. Refresh your reference clone (`git pull --ff-only`) before reading
    anything from it, so you always upgrade from the latest published
-   template — see "Keeping your template clone current" below
+   template — see "Keeping your reference clone current" below
 2. Run a pre-upgrade baseline (saves current typecheck/lint errors)
 3. Snapshot git
-4. Ask 3 quick project-profile questions (type, risk, existing toolchain)
-   and recommend a tailored layer set — not every project needs the same
-   layers
+4. Check for a Throughline `guardrail-prescription.json` — if found, use its
+   tier and layers directly; otherwise ask 3 quick project-profile questions
+   (type, risk, existing toolchain) and recommend a tailored layer set — not
+   every project needs the same layers
 5. Compare the project against the template and show a gap analysis
 6. Apply approved layers — infrastructure only, never touching your `src/`
 7. Run a code compliance audit (Layer 6) against your own code
@@ -136,7 +140,7 @@ After bootstrapping, `/guardrail-upgrade` will:
 
 ---
 
-## Keeping your template clone current
+## Keeping your reference clone current
 
 You do not need to remember to update `TEMPLATE_PATH` yourself. Both Option A
 and the installed `/guardrail-upgrade` command run `git -C "TEMPLATE_PATH"
@@ -147,15 +151,15 @@ If that pull can't complete — you're offline, there are uncommitted edits in
 the clone, or it's on a detached HEAD — the agent will not force or reset
 anything on your behalf. Instead it falls back to comparing
 `TEMPLATE_PATH/.cursor/guardrail-version` against the published version and
-warns you if your clone is behind, then continues with whatever is on disk.
-If you see that warning, run `git pull` in `TEMPLATE_PATH` yourself when
-convenient and re-run the upgrade.
+warns you if your reference clone is behind, then continues with whatever is
+on disk. If you see that warning, run `git pull` in `TEMPLATE_PATH` yourself
+when convenient and re-run the upgrade.
 
 This only works if `TEMPLATE_PATH` is a plain clone with `origin` pointing at
 `AGM82/cursor-guardrails` (see "One-time setup" above) — a "Use this
-template" copy has no upstream to pull from. Treat the clone as read-only:
-don't edit files inside it, so the fast-forward pull always succeeds
-cleanly.
+template" copy has no upstream to pull from. Treat the reference clone as
+read-only: don't edit files inside it, so the fast-forward pull always
+succeeds cleanly.
 
 ---
 
@@ -182,5 +186,7 @@ in one pass.
 ## See also
 
 - Full upgrade command: `.cursor/commands/guardrail-upgrade.md`
+- Direct vs Throughline, step by step for both: `docs/connect-guardrails.md`
+- The `guardrail-prescription.json` contract: `docs/guardrail-prescription.md`
 - Lessons from a real adoption: `docs/guardrail-upgrade-observations.md`
 - User-level rule (universal habits): `docs/user-level-rule.md`

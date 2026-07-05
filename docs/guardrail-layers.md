@@ -4,6 +4,8 @@
 
 Downstream tools — primarily [Throughline](https://github.com/AGM82/throughline) — read from this file instead of hardcoding the layer model. When the template changes, the version bumps, a GitHub Release is tagged, and downstream repos receive an automatic refresh PR.
 
+See [`docs/connect-guardrails.md`](./connect-guardrails.md) for how a project actually gets connected (direct, or via a tool like Throughline), [`docs/guardrail-prescription.md`](./guardrail-prescription.md) for the per-project handoff contract, and [`docs/project-lifecycle.md`](./project-lifecycle.md) for the wider lifecycle this manifest supports.
+
 ---
 
 ## Two numbering schemes — do not conflate

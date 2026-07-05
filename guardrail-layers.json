@@ -1,9 +1,9 @@
 {
-  "schemaVersion": 3,
-  "guardrailVersion": "1.3.4",
+  "schemaVersion": 4,
+  "guardrailVersion": "1.4.0",
   "description": "Canonical adoption-layer model and risk-tier mapping for the cursor-guardrails template. Single source of truth for /guardrail-upgrade and downstream governance tools such as Throughline. Do not edit by hand — changes must be deliberate and version-bumped. Verified against the actual file tree by .github/scripts/check-manifest-drift.mjs in CI.",
   "source": "https://github.com/AGM82/cursor-guardrails",
-  "lastUpdated": "2026-07-04",
+  "lastUpdated": "2026-07-05",
   "adoptionLayers": {
     "1": {
       "name": "AI instructions",
@@ -189,6 +189,82 @@
       }
     }
   },
+  "lifecycleStages": {
+    "description": "The Build-track (runs once per project) and Maintain-track (runs forever) stages documented in docs/project-lifecycle.md, encoded here as data so a downstream tool (e.g. Throughline) can detect which stage a project is in from deterministic GitHub facts — check-run results, PR review state, merge status — never from an AI's read of the code. ciCheckNames must match the exact GitHub check-run names this template's own CI produces (see .github/workflows/ci.yml); a project using different job names must adapt its own copy, this block is not auto-derived from ci.yml.",
+    "ciCheckNames": {
+      "verify": "Typecheck, lint, test, build",
+      "secretScan": "Secret scan (gitleaks)",
+      "sast": "SAST (Semgrep OWASP Top Ten)"
+    },
+    "stages": [
+      {
+        "stage": 1,
+        "name": "Discover & Define",
+        "track": "build",
+        "detectionSignals": [
+          "Initiative recorded in the governance tool",
+          "First commit observed on the repository"
+        ]
+      },
+      {
+        "stage": 2,
+        "name": "Design",
+        "track": "build",
+        "detectionSignals": ["A file matching .cursor/plans/*.md present in a commit"]
+      },
+      {
+        "stage": 3,
+        "name": "Build",
+        "track": "build",
+        "detectionSignals": [
+          "Commits present on a non-default branch",
+          "No check run from ciCheckNames.verify has concluded success yet"
+        ]
+      },
+      {
+        "stage": 4,
+        "name": "Verify",
+        "track": "build",
+        "detectionSignals": [
+          "Latest check run named ciCheckNames.verify on the branch concluded success"
+        ]
+      },
+      {
+        "stage": 5,
+        "name": "Secure",
+        "track": "build",
+        "detectionSignals": [
+          "Check runs named ciCheckNames.secretScan and ciCheckNames.sast both concluded success on the same commit as ciCheckNames.verify"
+        ]
+      },
+      {
+        "stage": 6,
+        "name": "Review",
+        "track": "build",
+        "detectionSignals": [
+          "An open pull request exists with at least one review in the APPROVED state"
+        ]
+      },
+      {
+        "stage": 7,
+        "name": "Release",
+        "track": "build",
+        "detectionSignals": [
+          "The pull request was merged to the default branch",
+          "All three ciCheckNames checks concluded success on the merge commit"
+        ]
+      },
+      {
+        "stage": 8,
+        "name": "Operate & Maintain",
+        "track": "maintain",
+        "detectionSignals": [
+          "Ongoing after stage 7: .cursor/guardrail-version compared against the latest published guardrailVersion",
+          "Open Dependabot pull request status"
+        ]
+      }
+    ]
+  },
   "schemaChangelog": [
     {
       "schemaVersion": 1,
@@ -219,6 +295,16 @@
       "schemaVersion": 3,
       "date": "2026-07-04",
       "note": "No schema change — documents a /guardrail-upgrade behaviour improvement. Layer 0 (Bootstrap) now refreshes the local template clone with 'git pull --ff-only origin main' before reading any files from it, and falls back to a guardrail-version staleness warning if the pull cannot complete. Closes the gap where TEMPLATE_PATH could silently point at a months-old clone even though the published template had moved on. guardrailVersion patch bump (the system improved)."
+    },
+    {
+      "schemaVersion": 3,
+      "date": "2026-07-05",
+      "note": "No schema change — documents two /guardrail-upgrade behaviour improvements. (1) Layer 0.4 (Project profile) now checks for a guardrail-prescription.json handoff file before asking its own 3 questions, so a Throughline (or other governance tool) classification carries through to execution instead of being re-answered and potentially diverging. See docs/guardrail-prescription.md for the contract. (2) 'Template clone' terminology is standardised to 'reference clone' across docs/playbook/README, and docs/connect-guardrails.md and docs/project-lifecycle.md are added as the canonical direct-vs-Throughline guide and the two-track SDLC lifecycle model respectively. guardrailVersion patch bump (the system improved)."
+    },
+    {
+      "schemaVersion": 4,
+      "date": "2026-07-05",
+      "note": "Adds a new top-level lifecycleStages block — the data model for automated, deterministic detection of which of the 8 docs/project-lifecycle.md stages a project is in, derived from GitHub facts (check-run results, PR review state, merge status) rather than an AI's read of the code. Includes ciCheckNames so downstream tools (e.g. a Throughline GitHub App integration) key off this template's actual CI check-run names instead of guessing or hardcoding a second copy. Additive schema change (schemaVersion 3 -> 4); guardrailVersion minor bump (new mapping/domain added, per the existing convention)."
     }
   ]
 }
