@@ -96,13 +96,19 @@ Then run without dry-run to confirm an issue is created:
 
 ## What updates automatically
 
-| What                    | How                                                       |
-| ----------------------- | --------------------------------------------------------- |
-| `playbook.html` content | Redeploys every time a PR merges to `main`                |
-| Updates section         | Fetches live from GitHub Issues API on every page load    |
-| Changelog section       | Fetches live from GitHub Releases API on every page load  |
-| Projects registry       | Stored in browser localStorage — persists across visits   |
-| Health check state      | Stored in browser localStorage — persists until you reset |
+| What                    | How                                                                                                                                                     |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `playbook.html` content | Redeploys every time a PR merges to `main`; the `_headers` file (below) forces every reload to fetch the latest deploy instead of a browser-cached copy |
+| Updates section         | Fetches live from GitHub Issues API on every page load                                                                                                  |
+| Changelog section       | Fetches live from GitHub Releases API on every page load                                                                                                |
+| Projects registry       | Stored in browser localStorage — persists across visits                                                                                                 |
+| Health check state      | Stored in browser localStorage — persists until you reset                                                                                               |
+
+### Why `playbook.html` needs an explicit `Cache-Control` header
+
+Cloudflare Pages normally adds `Cache-Control: public, max-age=0, must-revalidate` to every response itself — that alone is enough to always serve the latest deploy. But that default is only added when the request has no `Authorization`/session credential attached; once Cloudflare Access is protecting the page (Step 2 above), every request carries one, so Pages skips adding its own header and the response goes out with no explicit `Cache-Control` at all. Browsers then fall back to their own heuristic caching for that page, which can serve a stale copy after a new deploy.
+
+The repo's root-level `_headers` file (a [Cloudflare Pages convention](https://developers.cloudflare.com/pages/configuration/headers/)) fixes this by setting `Cache-Control: no-cache, no-store, must-revalidate` on `/playbook.html` explicitly, regardless of Access. This ships with the template — no setup step needed, and it survives every redeploy since it's just another file in the repo.
 
 ---
 
@@ -113,3 +119,5 @@ Then run without dry-run to confirm an issue is created:
 **Updates section shows nothing:** Confirm the `guardrail-review` label exists on GitHub (Step 3) and that at least one open issue has that label.
 
 **Workflow fails with "label not found":** Create the label in Step 3 before running the workflow.
+
+**Playbook still shows old content after a merge:** Hard-refresh once (Ctrl+Shift+R / Cmd+Shift+R) to clear anything cached before the `_headers` file existed. If it still doesn't update, confirm the latest deploy actually succeeded under **Workers & Pages → cursor-guardrails → Deployments**, and check the response headers for `/playbook.html` in your browser's network tab — you should see `Cache-Control: no-cache, no-store, must-revalidate`; if that header is missing, the `_headers` file didn't deploy and is worth checking into source control.
