@@ -14,9 +14,9 @@ This is distinct from `/review` (scoped to `git diff`, for reviewing a specific 
 
 4. **Design & accessibility.** Review `src/components/**` against `31-design.mdc` and `32-ux-behavioural.mdc`. Confirm the axe-core accessibility checks (`src/test/axe.ts`) are wired into the test run and passing — a regression here is a `high` finding per the `/review` severity taxonomy.
 
-5. **Architecture & convention drift.** Compare `src/` against the canonical patterns named in `90-project-context.mdc` (`src/components/Greeting.tsx`, `src/lib/currency.ts`, and their tests). Flag any file that duplicates a pattern instead of extending it.
+5. **Architecture & convention drift.** Compare `src/` against the **canonical patterns named in `.cursor/rules/90-project-context.mdc`** (do not hardcode demo paths like `Greeting.tsx` — use whatever that file lists for this project). Flag any file that duplicates a pattern instead of extending it.
 
-6. **Documentation consistency.** Cross-check `AGENTS.md`'s rule-file table, `docs/links.md`'s command/workflow tables, and `README.md` against what actually exists on disk: every `.cursor/commands/*.md` file should be listed, every `.github/workflows/*.yml` should be listed, and every `.cursor/rules/*.mdc` should be referenced.
+6. **Documentation consistency.** Cross-check `AGENTS.md`'s rule-file table and `README.md` against what actually exists on disk: every `.cursor/commands/*.md` file should be listed (or deliberately omitted with a note), every `.github/workflows/*.yml` that this project owns should be listed, and every `.cursor/rules/*.mdc` should be referenced. If `docs/links.md` exists, include it in the cross-check; if it does not (common on product repos that stripped hub meta), skip it — do not treat absence as a finding.
 
 7. **Holistic AI pass.** Run the Bugbot subagent in `natural language` diff mode (per the `review-bugbot` skill) against the full `src/` tree, describing it as "the entire src/ directory as it currently stands, not a diff" so it reviews everything rather than expecting a changeset. Use this to catch cross-file issues the static checks above miss.
 

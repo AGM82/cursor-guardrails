@@ -6,6 +6,8 @@ Downstream tools — primarily [Throughline](https://github.com/AGM82/throughlin
 
 See [`docs/connect-guardrails.md`](./connect-guardrails.md) for how a project actually gets connected (direct, or via a tool like Throughline), [`docs/guardrail-prescription.md`](./guardrail-prescription.md) for the per-project handoff contract, and [`docs/project-lifecycle.md`](./project-lifecycle.md) for the wider lifecycle this manifest supports.
 
+**Hub vs starter (v1.5.0+):** new products use [cursor-guardrails-starter](https://github.com/AGM82/cursor-guardrails-starter). This hub keeps `templateMeta` paths (playbook, Throughline docs, scheduled AI reviews) that `/guardrail-upgrade` and the starter sync **never** copy. Layers 1–5 are the only consumer file surface.
+
 ---
 
 ## Two numbering schemes — do not conflate

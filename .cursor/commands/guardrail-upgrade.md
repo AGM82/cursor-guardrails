@@ -313,6 +313,8 @@ On future runs, `/guardrail-upgrade` compares this file against `TEMPLATE_PATH/.
 
 - Treat `TEMPLATE_PATH` as read-only — never create, edit, or delete files inside the reference clone itself. This keeps `git pull --ff-only` always able to fast-forward cleanly on the next run.
 - Treat `guardrail-prescription.json` (if present) as read-only too — never create, edit, or delete it. It is an input from Throughline or another governance tool, not an output of this command.
+- **Never copy `templateMeta` files** into the target project. Read `TEMPLATE_PATH/guardrail-layers.json` → `templateMeta.files` (hub-only: playbook, Throughline docs, scheduled AI-review workflows, Cloudflare playbook hosting, starter-sync scripts, etc.). Those paths must not appear in any layer copy step. If the target still has any of them from an old fat “Use this template” generation, list them once and offer to strip per `TEMPLATE_PATH/docs/post-generate-cleanup.md` — do not re-add them.
+- Only copy files listed under `adoptionLayers` Layers 1–5 (plus writing `.cursor/guardrail-version`). That is the entire consumer surface — same set synced to `cursor-guardrails-starter`.
 - Never copy `src/`, `index.html`, `vite.config.ts`, or any application code into a project that already has its own.
 - Never overwrite a `.env` file or create one with real values.
 - Never remove lines from an existing `.gitignore` — only add.

@@ -181,3 +181,14 @@ The guardrails system itself was validated by this adoption — the toolchain ca
 real issues. The gaps were entirely in the **process spec**: the command assumed
 guardrails were already partially in place, skipped code alignment, and lacked
 governance confirmation. All gaps are addressed in this release.
+
+---
+
+## Later: fat-template day-one tax (Africa Risk Map)
+
+A second worked example — a product started with **Use this template** on the hub —
+showed that playbook / Throughline / scheduled AI-review scaffolding is not guardrail
+value for consumers (~5.5k lines deleted on day one). That feedback drove
+**guardrail v1.5.0**: hub vs `cursor-guardrails-starter` split, `templateMeta`, and
+path-agnostic traveling files. See
+[`docs/worked-example-africa-risk-map.md`](./worked-example-africa-risk-map.md).

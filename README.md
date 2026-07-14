@@ -2,7 +2,9 @@
 
 A portable, opinionated baseline for building production-grade software in Cursor. It encodes a layered guardrail system grounded in Cursor's own agent best practices: plan first, keep written rules thin, and put the real weight into deterministic enforcement an agent cannot bypass.
 
-**Live template:** [github.com/AGM82/cursor-guardrails](https://github.com/AGM82/cursor-guardrails) — use **Use this template** to start a new project.
+**Live hub:** [github.com/AGM82/cursor-guardrails](https://github.com/AGM82/cursor-guardrails) — playbook, Throughline contracts, scheduled AI reviews, reference clone for `/guardrail-upgrade`.
+
+**New projects:** use the thin starter — [github.com/AGM82/cursor-guardrails-starter](https://github.com/AGM82/cursor-guardrails-starter) → **Use this template**. Do **not** generate from this hub repo (it ships hub-only playbook/Throughline/AI-review scaffolding).
 
 ## Why this exists
 
@@ -44,16 +46,18 @@ Prose rules are _advisory_ — an agent can drift from them after a few turns. L
 
 ## Setup (new project)
 
-1. Create a repo from this template (GitHub → **Use this template**), or copy these files into your project.
+1. Create a repo from the **starter** (GitHub → [cursor-guardrails-starter](https://github.com/AGM82/cursor-guardrails-starter) → **Use this template**). Do not use **Use this template** on _this_ hub repo.
 2. `npm install` (installs dependencies and activates the husky hooks). If you use `nvm`, run `nvm use` first to match `.nvmrc`.
 3. `npm run typecheck`, `npm run lint`, and `npm run test` to confirm the toolchain resolves (see Notes if a plugin import needs adjusting).
 4. Optional: install [gitleaks](https://github.com/gitleaks/gitleaks#installing) for local secret scanning. CI enforces it regardless.
 5. Fill in `.cursor/rules/90-project-context.mdc` and the other per-project items above.
-6. Commit. Husky, commitlint, and the Cursor hooks are active from the first commit.
+6. Replace the demo under `src/` with your product. Commit. Husky, commitlint, and the Cursor hooks are active from the first commit.
 7. On GitHub: enable branch protection on `main` (see **Branch protection** below).
-8. To receive future guardrail improvements in this project, keep a separate **reference clone** of `cursor-guardrails` (a plain `git clone`, not another "Use this template") and run `/guardrail-upgrade` inside this project later — see **Existing project? Start here** below; the same tool applies here too.
+8. To receive future guardrail improvements, keep a separate **reference clone** of **this hub** (`git clone https://github.com/AGM82/cursor-guardrails` — a plain clone, not "Use this template") and run `/guardrail-upgrade` inside your project later.
 
-This template ships a minimal working React + TypeScript + Vite + Tailwind CSS v4 + shadcn/ui app (`index.html`, `src/`) with an example component, a utility, and tests, so `dev`/`build`/`test` work out of the box. The canonical component (`src/components/Greeting.tsx`) demonstrates the foundational tier in practice. Replace the demo with your real application.
+The starter ships a minimal React + TypeScript + Vite + Tailwind CSS v4 + shadcn/ui demo so `dev`/`build`/`test` work out of the box. Canonical demo files are listed in `90-project-context.mdc` — replace them with your product's canonicals.
+
+**Already generated from this fat hub before the split?** See [`docs/post-generate-cleanup.md`](docs/post-generate-cleanup.md). **Stack adaptations (Next.js, High-risk B2B):** [`docs/consumer-adaptations.md`](docs/consumer-adaptations.md).
 
 ## Existing project? Start here
 
@@ -86,7 +90,7 @@ Adopt the guardrails incrementally without touching your application code.
 - Never removes lines from `.gitignore`.
 - Stops and asks if anything is ambiguous.
 
-See [`docs/guardrail-upgrade-observations.md`](docs/guardrail-upgrade-observations.md) for lessons learned from a real adoption.
+See [`docs/guardrail-upgrade-observations.md`](docs/guardrail-upgrade-observations.md) for lessons learned from a real adoption, and [`docs/worked-example-africa-risk-map.md`](docs/worked-example-africa-risk-map.md) for the hub/starter split that followed.
 
 **Template versioning:** after a successful upgrade, a `.cursor/guardrail-version` file is written to track which template release was applied. Future runs flag layers that have drifted. Tag your own template releases as `guardrail-v1.1.0` on GitHub to participate in this system.
 
@@ -94,12 +98,15 @@ See [`docs/guardrail-upgrade-observations.md`](docs/guardrail-upgrade-observatio
 
 **Connecting to Throughline (or another governance tool):** if a project needs a documented risk tier and governance evidence rather than the self-serve 3-question profile, see [`docs/connect-guardrails.md`](./docs/connect-guardrails.md) for the direct-vs-Throughline decision and step-by-step for both, and [`docs/project-lifecycle.md`](./docs/project-lifecycle.md) for the full build-and-maintain lifecycle this fits into.
 
-## GitHub template (maintainers, one-time)
+## GitHub template (maintainers)
 
-After pushing this repo to GitHub:
+**Consumer starter (`cursor-guardrails-starter`):**
 
-1. **Settings → General** → tick **Template repository** (under "Repository template"). This enables the green **Use this template** button for new projects.
-2. **Settings → Branches → Add branch ruleset** — see **Branch protection** below.
+1. Create the public repo once; enable **Template repository**.
+2. Add hub secret `STARTER_SYNC_TOKEN` (fine-grained PAT: Contents + Pull requests on the starter).
+3. Run **Sync starter template** (Actions) after each guardrail version bump — opens a sync PR on the starter.
+
+**This hub:** keep as a normal (non-template) repo, or leave template enabled only for emergency clones — new products should use the starter. Playbook hosting and AI-review workflows stay here.
 
 ## Branch protection (recommended)
 
