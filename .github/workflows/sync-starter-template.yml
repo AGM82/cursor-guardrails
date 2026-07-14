@@ -74,10 +74,12 @@ jobs:
 
       - name: Push to starter repo (opens PR when possible)
         env:
-          STARTER_SYNC_TOKEN: ${{ secrets.STARTER_SYNC_TOKEN }}
+          # Must be GH_TOKEN: gh prefers env tokens over stored login, and GH_TOKEN over
+          # Actions' always-present GITHUB_TOKEN (hub-scoped, contents:read only).
+          GH_TOKEN: ${{ secrets.STARTER_SYNC_TOKEN }}
           STARTER_REPO: AGM82/cursor-guardrails-starter
         run: |
-          if [ -z "$STARTER_SYNC_TOKEN" ]; then
+          if [ -z "$GH_TOKEN" ]; then
             echo "### Starter sync skipped" >> "$GITHUB_STEP_SUMMARY"
             echo "" >> "$GITHUB_STEP_SUMMARY"
             echo "STARTER_SYNC_TOKEN is not set. Create public repo AGM82/cursor-guardrails-starter (Template repository enabled), add a fine-grained PAT with Contents + Pull requests write on that repo as secret STARTER_SYNC_TOKEN, then re-run this workflow." >> "$GITHUB_STEP_SUMMARY"
@@ -88,10 +90,8 @@ jobs:
           BRANCH="chore/sync-from-hub-v${VERSION}"
           WORK=/tmp/starter-sync
           rm -rf "$WORK"
-          # Do not set GH_TOKEN in env — gh auth login --with-token refuses when GH_TOKEN is present.
-          unset GH_TOKEN
-          # Authenticate gh non-interactively and wire git to use it for HTTPS pushes.
-          echo "$STARTER_SYNC_TOKEN" | gh auth login --with-token
+          # Do not run gh auth login — it refuses when GH_TOKEN/GITHUB_TOKEN is set.
+          # setup-git makes git push use gh's credential helper, which reads GH_TOKEN.
           gh auth setup-git --hostname github.com
           gh repo clone "$STARTER_REPO" "$WORK"
           find "$WORK" -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
