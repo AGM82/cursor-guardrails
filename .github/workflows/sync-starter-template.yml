@@ -5,15 +5,45 @@ on:
     branches:
       - main
     paths:
+      # Version / manifest always trigger a sync
       - '.cursor/guardrail-version'
       - 'guardrail-layers.json'
+      # Layer 1 + hooks/commands/rules
       - '.cursor/**'
+      # Demo app
       - 'src/**'
+      - 'index.html'
+      - 'vite.config.ts'
+      - 'components.json'
       - 'package.json'
       - 'package-lock.json'
+      # Layer 2 — git hygiene
+      - '.gitattributes'
+      - '.gitignore'
+      - '.nvmrc'
+      - '.npmrc'
+      - '.editorconfig'
+      - 'LICENSE'
+      - 'SECURITY.md'
+      - 'CONTRIBUTING.md'
+      - '.github/CODEOWNERS'
+      - '.github/dependabot.yml'
+      - '.github/pull_request_template.md'
+      # Layer 3 — commit discipline
+      - 'commitlint.config.mjs'
+      - '.husky/**'
+      # Layer 4 — code quality
+      - 'eslint.config.js'
+      - '.prettierrc.json'
+      - 'tsconfig.json'
+      # Layer 5 — CI + drift helper
       - '.github/workflows/ci.yml'
-      - '.github/scripts/sync-starter-template.mjs'
       - '.github/scripts/check-manifest-drift.mjs'
+      # Starter sync tooling + consumer docs shipped to starter
+      - '.github/scripts/sync-starter-template.mjs'
+      - 'docs/bootstrap-guardrail-upgrade.md'
+      - 'docs/guardrail-layers.md'
+      - 'docs/guardrail-upgrade-observations.md'
   workflow_dispatch:
 
 permissions:

@@ -2,9 +2,9 @@
 /**
  * Builds a thin consumer-starter tree from this hub repo.
  *
- * Copies adoption Layers 1–5, the Vite demo app, consumer docs, and CI helpers.
- * Excludes everything listed in guardrail-layers.json → templateMeta.files
- * (playbook, Throughline, scheduled AI reviews, etc.).
+ * Copies adoption Layers 1–5 only (not 6–7), the Vite demo app, consumer docs,
+ * and CI helpers. Excludes everything listed in guardrail-layers.json →
+ * templateMeta.files (playbook, Throughline, scheduled AI reviews, etc.).
  *
  * Usage:
  *   node .github/scripts/sync-starter-template.mjs              # write to .starter-out/
@@ -44,8 +44,12 @@ const metaFiles = new Set(manifest.templateMeta?.files || []);
 const consumerDocs = manifest.templateMeta?.starterIncludesConsumerDocs || [];
 
 const layerFiles = [];
-for (const layer of Object.values(manifest.adoptionLayers || {})) {
-  for (const f of layer.files || []) layerFiles.push(f);
+// Consumer surface is Layers 1–5 only (matches /guardrail-upgrade and starter docs).
+// Layers 6–7 are process steps today; if they gain files later they must not ship to the starter.
+const CONSUMER_LAYER_KEYS = ['1', '2', '3', '4', '5'];
+for (const key of CONSUMER_LAYER_KEYS) {
+  const layer = manifest.adoptionLayers?.[key];
+  for (const f of layer?.files || []) layerFiles.push(f);
 }
 
 /** Extra consumer files not listed in adoption layers but required for a working starter. */
