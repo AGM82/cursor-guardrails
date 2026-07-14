@@ -1,5 +1,7 @@
 # Cloudflare Pages + Access setup
 
+> **Hub only.** This documents hosting `playbook.html` for the cursor-guardrails **hub**. It is listed in `templateMeta` and is **not** part of [cursor-guardrails-starter](https://github.com/AGM82/cursor-guardrails-starter). Product repos should not copy this file.
+
 Host `playbook.html` at a permanent URL with a personal login. Estimated time: 15 minutes.
 
 ---

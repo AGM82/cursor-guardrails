@@ -24,4 +24,4 @@
 
 <Anything deferred or worth a future ticket.>
 
-- [ ] Does this change affect `playbook.html`? (update if slash commands, tiers, bootstrap prompt, KB entries, or prompt library changed)
+- [ ] Does this change affect `playbook.html`? (hub only — update if slash commands, tiers, bootstrap prompt, KB entries, or prompt library changed; N/A on consumer/starter repos)

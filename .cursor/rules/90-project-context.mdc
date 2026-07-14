@@ -7,34 +7,42 @@ alwaysApply: true
 
 ## What this is
 
-A reusable Cursor project template — not a product app. It ships guardrails (rules, hooks, CI, slash commands) and a minimal React + TypeScript demo so `npm run dev`, `typecheck`, `lint`, and `test` all work out of the box. New projects start from this repo via GitHub **Use this template**; existing projects can adopt layers with `/guardrail-upgrade`.
+A reusable Cursor **hub** for guardrails (rules, hooks, CI, slash commands), the playbook dashboard, and Throughline contracts — plus a minimal React + TypeScript demo so local `dev`/`typecheck`/`lint`/`test` work. **New product repos start from [cursor-guardrails-starter](https://github.com/AGM82/cursor-guardrails-starter)** (Use this template there). Existing projects adopt layers with `/guardrail-upgrade` against a reference clone of **this** hub.
 
 ## Domain glossary
 
 - **Guardrail tier** — One layer of protection (workflow → advisory → toolchain → runtime → automation → workflows → review).
 - **Deterministic enforcement** — Checks a machine runs (lint, typecheck, CI) that cannot be skipped by an AI agent.
 - **Advisory rule** — Prose in `.cursor/rules/*.mdc` or `AGENTS.md`; helpful but not enforced alone.
-- **Template** — This repo; copy or fork to start another project. Customise per-project files (`90-project-context.mdc`, `LICENSE`, etc.) in each child project.
+- **Hub** — This repo (`cursor-guardrails`): playbook, AI reviews, Throughline docs, reference clone.
+- **Starter** — Thin consumer template (`cursor-guardrails-starter`): Layers 1–5 + demo only.
+- **templateMeta** — Hub-only paths listed in `guardrail-layers.json`; never copy into products.
 
 ## Tech stack
 
-Default scaffold: React + TypeScript + Vite + Tailwind CSS v4 + shadcn/ui + Lucide React + Vitest + ESLint + Prettier + Husky. See `30-react-stack.mdc` for the full three-tier stack (foundational / functional / swappable) and the override process.
+Default **demo** scaffold (hub + starter): React + TypeScript + Vite + Tailwind CSS v4 + shadcn/ui + Lucide React + Vitest + ESLint + Prettier + Husky. See `30-react-stack.mdc` for the three-tier stack and override process. Product repos often swap Vite for Next — record that in this file and see hub `docs/consumer-adaptations.md`.
 
-No backend, database, or deployment pipeline exists in this repo today — it is a frontend-only demo scaffold. `60-backend-api.mdc`, `61-database.mdc`, and `62-deployment-observability.mdc` are installed and glob-scoped so they activate automatically the moment a real project (this one or a child project started from it) adds a server, schema, or deploy step; until then they have no effect.
+Backend/database/deployment rules (`60`/`61`/`62`) are installed and glob-scoped so they activate when a real project adds a server, schema, or deploy step; until then they have no effect.
 
 ## Canonical files (reference these — do not reinvent)
+
+**Child / product projects:** replace this entire section with *your* canonical paths after generate. Until you do, agents will look for the demo files below and get lost.
+
+**This hub's demo (accurate only for cursor-guardrails itself):**
 
 - Component: `src/components/Greeting.tsx`
 - Utility: `src/lib/currency.ts`
 - Test: `src/components/Greeting.test.tsx`, `src/lib/currency.test.ts`
+- CSS entry: `src/index.css`
 - CI: `.github/workflows/ci.yml`
 - Agent entry: `AGENTS.md`
 
 ## Architecture decisions
 
-- Single-page Vite app under `src/`; path alias `@/` → `src/`.
+- Single-page Vite demo under `src/`; path alias `@/` → `src/`.
 - Agent governance: `.cursor/rules/` (advisory), `.cursor/hooks.json` (runtime), Husky + GitHub Actions (automation).
 - Branch protection on `main` requires three CI jobs before merge.
+- Hub vs starter split (v1.5.0+): products generate from the starter; upgrades read this hub.
 
 ## Data classification (POPIA)
 

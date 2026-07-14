@@ -15,3 +15,6 @@ coverage/
 
 # Guardrail upgrade — local artefacts (never commit)
 .cursor/guardrail-baseline.log
+
+# Thin starter build output (sync-starter-template.mjs)
+.starter-out/

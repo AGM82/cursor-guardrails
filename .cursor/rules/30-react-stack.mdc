@@ -8,18 +8,18 @@ alwaysApply: false
 
 **This file is the stack override point.** If a project deviates from any tier, edit here and note the deviation in `90-project-context.mdc`.
 
-## Tier 1 — Foundational (installed in every project from day one)
+## Tier 1 — Foundational (default Vite demo; override per project)
 
-These are always present. There is no project where styling, accessible primitives, and iconography are not needed.
+These are always present on the default starter. **If this project uses Next.js (or another bundler), record the override in `90-project-context.mdc` and treat the table below as the Vite default, not gospel.**
 
 | Tool | Purpose | Version rule |
 |---|---|---|
 | React + TypeScript (strict) | Framework + type safety | Match `.nvmrc` engine; strict mode always on |
-| Tailwind CSS v4 | Utility-first styling; enforces the 8-point grid and constrained palette from `31-design.mdc` | `tailwindcss` + `@tailwindcss/vite` plugin |
+| Tailwind CSS v4 | Utility-first styling; enforces the 8-point grid and constrained palette from `31-design.mdc` | Default (Vite): `tailwindcss` + `@tailwindcss/vite`. **Next.js override:** `@tailwindcss/postcss` instead of the Vite plugin — document in `90-project-context.mdc` |
 | shadcn/ui | Accessible, unstyled component primitives (Radix UI underneath) | Add per-component via `npx shadcn@latest add <name>` — never hand-roll inputs, dialogs, or selects that shadcn provides |
 | Lucide React | Icon set; consistent with shadcn/ui | `lucide-react` |
-| Vite | Build tool and dev server | `@tailwindcss/vite` plugin; no `tailwind.config.*` needed for v4 |
-| Vitest + Testing Library | Unit and component tests | Coverage via `@vitest/coverage-v8`; threshold in `vite.config.ts` |
+| Vite | Default build tool and dev server (demo starter) | `@tailwindcss/vite` plugin; no `tailwind.config.*` needed for v4. Swap for Next App Router when the project needs SSR/RSC — see hub `docs/consumer-adaptations.md` |
+| Vitest + Testing Library | Unit and component tests | Coverage via `@vitest/coverage-v8`; threshold in `vite.config.ts` (or project equivalent) |
 | axe-core | Automated accessibility assertions in component tests | Use the `expectNoA11yViolations()` helper in `src/test/axe.ts` — calls axe-core directly rather than a Jest/Vitest wrapper package |
 
 ### Tailwind conventions
@@ -33,7 +33,7 @@ These are always present. There is no project where styling, accessible primitiv
 
 - Functional components with typed props. No `any` — model real types. Co-locate types with the component or in a `types.ts`.
 - Compose from shadcn/ui primitives (`@/components/ui/*`). Extend them before building from scratch.
-- Reference component: `src/components/Greeting.tsx` — shows Tailwind + Lucide + shadcn `Button` in a minimal example.
+- Reference component: the canonical UI file listed in `90-project-context.mdc` (hub/demo default: `src/components/Greeting.tsx`). Do not invent a second pattern.
 
 ---
 

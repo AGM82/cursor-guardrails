@@ -20,19 +20,20 @@ The playbook is a single-file dashboard (`playbook.html`) hosted on Cloudflare P
 
 ## GitHub — repository
 
-| What                                 | Link                                                                |
-| ------------------------------------ | ------------------------------------------------------------------- |
-| **Repository**                       | https://github.com/AGM82/cursor-guardrails                          |
-| Use this template (new project only) | https://github.com/AGM82/cursor-guardrails/generate                 |
-| Issues (all)                         | https://github.com/AGM82/cursor-guardrails/issues                   |
-| Pull requests                        | https://github.com/AGM82/cursor-guardrails/pulls                    |
-| Actions (CI + automation)            | https://github.com/AGM82/cursor-guardrails/actions                  |
-| Releases                             | https://github.com/AGM82/cursor-guardrails/releases                 |
-| Tags                                 | https://github.com/AGM82/cursor-guardrails/tags                     |
-| Labels                               | https://github.com/AGM82/cursor-guardrails/labels                   |
-| Settings → Secrets                   | https://github.com/AGM82/cursor-guardrails/settings/secrets/actions |
+| What                            | Link                                                                |
+| ------------------------------- | ------------------------------------------------------------------- |
+| **Hub (this repo)**             | https://github.com/AGM82/cursor-guardrails                          |
+| **Starter (Use this template)** | https://github.com/AGM82/cursor-guardrails-starter/generate         |
+| Starter repository              | https://github.com/AGM82/cursor-guardrails-starter                  |
+| Issues (all)                    | https://github.com/AGM82/cursor-guardrails/issues                   |
+| Pull requests                   | https://github.com/AGM82/cursor-guardrails/pulls                    |
+| Actions (CI + automation)       | https://github.com/AGM82/cursor-guardrails/actions                  |
+| Releases                        | https://github.com/AGM82/cursor-guardrails/releases                 |
+| Tags                            | https://github.com/AGM82/cursor-guardrails/tags                     |
+| Labels                          | https://github.com/AGM82/cursor-guardrails/labels                   |
+| Settings → Secrets              | https://github.com/AGM82/cursor-guardrails/settings/secrets/actions |
 
-For adopting guardrails on an existing project, use a plain `git clone` (a "reference clone") instead of the button above — see [docs/connect-guardrails.md](./connect-guardrails.md).
+New products: **Use this template** on the **starter**. For upgrades, keep a plain `git clone` of the **hub** as the reference clone — see [docs/connect-guardrails.md](./connect-guardrails.md). If you already generated from the fat hub, see [docs/post-generate-cleanup.md](./post-generate-cleanup.md).
 
 ---
 
@@ -43,6 +44,7 @@ For adopting guardrails on an existing project, use a plain `git clone` (a "refe
 | **CI**                          | Typecheck, lint, test+coverage, build, audit, manifest drift, audit-hook self-test, SBOM generation, build provenance attestation, package-signature verification, secret scan, SAST | https://github.com/AGM82/cursor-guardrails/actions/workflows/ci.yml                          |
 | **Bi-weekly AI review**         | AI guardrail suggestions → GitHub issue + watchlist                                                                                                                                  | https://github.com/AGM82/cursor-guardrails/actions/workflows/bi-weekly-ai-review.yml         |
 | **Weekly guardrail review**     | Dependency/tooling drift → issue + optional auto-PRs                                                                                                                                 | https://github.com/AGM82/cursor-guardrails/actions/workflows/weekly-guardrail-review.yml     |
+| **Sync starter template**       | Builds thin starter tree; opens PR on cursor-guardrails-starter when `STARTER_SYNC_TOKEN` is set                                                                                     | https://github.com/AGM82/cursor-guardrails/actions/workflows/sync-starter-template.yml       |
 | **Propagate guardrail version** | Pushes version bumps to downstream repos (e.g. Throughline)                                                                                                                          | https://github.com/AGM82/cursor-guardrails/actions/workflows/propagate-guardrail-version.yml |
 
 ---
@@ -96,6 +98,9 @@ Integration prompt for Throughline: [docs/throughline-integration-prompt.md](./t
 | [docs/throughline-lifecycle-prompt.md](./throughline-lifecycle-prompt.md)     | Prompt aligning Throughline with the prescription + lifecycle      |
 | [docs/throughline-github-app-prompt.md](./throughline-github-app-prompt.md)   | Prompt building the Path B+ GitHub App live-monitoring integration |
 | [docs/guardrail-upgrade-observations.md](./guardrail-upgrade-observations.md) | Lessons from a real adoption                                       |
+| [docs/worked-example-africa-risk-map.md](./worked-example-africa-risk-map.md) | Worked example that drove the hub/starter split (v1.5.0)           |
+| [docs/consumer-adaptations.md](./consumer-adaptations.md)                     | Next.js / gitleaks / High-risk B2B patterns (optional)             |
+| [docs/post-generate-cleanup.md](./post-generate-cleanup.md)                   | Strip hub meta from fat-template children                          |
 | [docs/guardrail-layers.md](./guardrail-layers.md)                             | `guardrail-layers.json` schema and consumption                     |
 | [docs/cloudflare-setup.md](./cloudflare-setup.md)                             | Playbook hosting + Cloudflare Access                               |
 | [docs/user-level-rule.md](./user-level-rule.md)                               | Cursor user-level rule text (Settings → Rules)                     |

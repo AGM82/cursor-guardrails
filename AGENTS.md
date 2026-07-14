@@ -25,9 +25,9 @@ six domains. Apply the relevant domain rules whenever the work touches that area
 | Deployment & observability     | `62-deployment-observability.mdc` |
 | Project specifics              | `90-project-context.mdc`          |
 
-The Backend/Database/Deployment rules are glob-scoped and inert until a project
-actually adds a server, database, or deploy pipeline — they cost nothing to keep
-installed even in the current frontend-only demo scaffold.
+The Backend/Database/Deployment rules are glob-scoped and activate automatically
+when this project adds a server, database, or deploy pipeline — they cost nothing
+to keep installed until those surfaces exist.
 
 **Tool philosophy**: use the best available AI agent for the task. Cursor is the
 current primary coding agent. Evaluate new tools using the framework in

@@ -44,18 +44,19 @@ These rules apply whenever an AI agent creates or modifies any visual output —
 
 ### Automated accessibility checks
 
-- Every new component must include an automated accessibility assertion in its Vitest test, using the `expectNoA11yViolations()` helper in `src/test/axe.ts` (wraps `axe-core` directly — see `src/components/Greeting.test.tsx` for the pattern). This catches missing labels, invalid ARIA, and structural issues that manual review misses.
-- `color-contrast` is excluded from the automated check (jsdom cannot compute real contrast) — contrast is still a hard stop, verified manually or with a contrast tool per the rule above.
+- Every new component must include an automated accessibility assertion in its Vitest test, using the `expectNoA11yViolations()` helper in `src/test/axe.ts` (wraps `axe-core` directly — see a representative component test named in `90-project-context.mdc` for the pattern; hub/demo default: `src/components/Greeting.test.tsx`). This catches missing labels, invalid ARIA, and structural issues that manual review misses.
+- `color-contrast` is excluded from the automated check (jsdom/happy-dom cannot compute real contrast) — contrast is still a hard stop, verified manually or with a contrast tool per the rule above.
 
 ## Design tokens
 
-- All colour, spacing, typography-scale, radius, and shadow values are declared as CSS custom properties in `src/index.css` (`:root`, `.dark`, and the `@theme inline` block) — **not** in a `tailwind.config.ts`. Tailwind v4 is CSS-first; there is no JS config file in this stack (see `30-react-stack.mdc`).
+- All colour, spacing, typography-scale, radius, and shadow values are declared as CSS custom properties in the project's **CSS entry** (`:root`, `.dark`, and the `@theme inline` block) — **not** in a `tailwind.config.ts`. Tailwind v4 is CSS-first; there is no JS config file in this stack (see `30-react-stack.mdc`).
+- The CSS entry path is declared in `90-project-context.mdc` (hub/demo default: `src/index.css`; Next App Router often uses `src/app/globals.css`). Use that path — do not assume `src/index.css` exists.
 - Agents must never invent a one-off arbitrary Tailwind value (e.g. `w-[137px]`) when an existing token covers the case. A genuinely one-off value is permitted only with a comment explaining why no token fits.
-- Adding a new token means adding the CSS variable in `src/index.css` first, then consuming it via Tailwind's generated utility (e.g. a new `--color-*` variable becomes a `bg-*`/`text-*` class automatically). Conceptual basis: [W3C Design Tokens Community Group](https://tr.designtokens.org).
+- Adding a new token means adding the CSS variable in the CSS entry first, then consuming it via Tailwind's generated utility (e.g. a new `--color-*` variable becomes a `bg-*`/`text-*` class automatically). Conceptual basis: [W3C Design Tokens Community Group](https://tr.designtokens.org).
 
 ## CSS architecture
 
-- Tailwind v4 emits CSS cascade layers (`@layer theme, base, components, utilities`) automatically. Any hand-written CSS in `src/index.css` must sit inside the matching `@layer` block — element resets and CSS-variable definitions in `base`, one-off component overrides in `components`, never in the unlayered global scope.
+- Tailwind v4 emits CSS cascade layers (`@layer theme, base, components, utilities`) automatically. Any hand-written CSS in the CSS entry must sit inside the matching `@layer` block — element resets and CSS-variable definitions in `base`, one-off component overrides in `components`, never in the unlayered global scope.
 - Do not use `!important` to win a specificity fight. If a utility class is being overridden unexpectedly, fix the layer/order instead. The only exception is a documented, narrowly-scoped override inside the `components` layer with a comment explaining why.
 - Reference: [MDN `@layer`](https://developer.mozilla.org/en-US/docs/Web/CSS/@layer).
 
@@ -104,5 +105,5 @@ These rules apply whenever an AI agent creates or modifies any visual output —
 - Do not introduce a spacing, colour, or type value outside the established scale.
 - Do not use `display: none` on content that should be accessible to screen readers; use `visually-hidden` patterns instead.
 - Do not ship a new component without an `expectNoA11yViolations()` test.
-- Do not add a `tailwind.config.ts` or declare tokens outside `src/index.css` — this stack is CSS-first (Tailwind v4).
+- Do not add a `tailwind.config.ts` or declare tokens outside the project's CSS entry (see `90-project-context.mdc`; hub default `src/index.css`) — this stack is CSS-first (Tailwind v4).
 - Do not use `!important` outside a documented override inside the `components` layer.

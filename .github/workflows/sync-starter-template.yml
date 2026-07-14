@@ -1,0 +1,85 @@
+﻿name: Sync starter template
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.cursor/guardrail-version'
+      - 'guardrail-layers.json'
+      - '.cursor/**'
+      - 'src/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/ci.yml'
+      - '.github/scripts/sync-starter-template.mjs'
+      - '.github/scripts/check-manifest-drift.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-starter-template
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Build and push cursor-guardrails-starter
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout hub
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Dry-run sync (assert no templateMeta leak)
+        run: node .github/scripts/sync-starter-template.mjs --dry-run
+
+      - name: Build starter tree
+        run: node .github/scripts/sync-starter-template.mjs --out .starter-out
+
+      - name: Push to starter repo (opens PR when possible)
+        env:
+          GH_TOKEN: ${{ secrets.STARTER_SYNC_TOKEN }}
+          STARTER_REPO: AGM82/cursor-guardrails-starter
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "### Starter sync skipped" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "STARTER_SYNC_TOKEN is not set. Create public repo AGM82/cursor-guardrails-starter (Template repository enabled), add a fine-grained PAT with Contents + Pull requests write on that repo as secret STARTER_SYNC_TOKEN, then re-run this workflow." >> "$GITHUB_STEP_SUMMARY"
+            echo "Local tree was still built and dry-run assertions passed." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          VERSION=$(tr -d '[:space:]' < .cursor/guardrail-version)
+          BRANCH="chore/sync-from-hub-v${VERSION}"
+          WORK=/tmp/starter-sync
+          rm -rf "$WORK"
+          # Clone with gh CLI (uses GH_TOKEN from the environment; no token embedded in remotes).
+          gh repo clone "$STARTER_REPO" "$WORK"
+          find "$WORK" -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+          cp -a .starter-out/. "$WORK/"
+          cd "$WORK"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$BRANCH"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to sync."
+            exit 0
+          fi
+          git commit -m "chore(sync): import guardrails v${VERSION} from hub"
+          git push -u origin "$BRANCH" --force-with-lease
+          EXISTING=$(gh pr list --repo "$STARTER_REPO" --head "$BRANCH" --state open --json number --jq '.[0].number // empty')
+          if [ -z "$EXISTING" ]; then
+            gh pr create --repo "$STARTER_REPO" \
+              --title "chore(sync): guardrails v${VERSION} from hub" \
+              --body "Auto-synced from AGM82/cursor-guardrails at v${VERSION}. Hub-only templateMeta paths excluded." \
+              --base main \
+              --head "$BRANCH"
+          else
+            echo "Updated existing PR #${EXISTING}"
+          fi

@@ -1,9 +1,10 @@
 {
-  "schemaVersion": 4,
-  "guardrailVersion": "1.4.0",
-  "description": "Canonical adoption-layer model and risk-tier mapping for the cursor-guardrails template. Single source of truth for /guardrail-upgrade and downstream governance tools such as Throughline. Do not edit by hand — changes must be deliberate and version-bumped. Verified against the actual file tree by .github/scripts/check-manifest-drift.mjs in CI.",
+  "schemaVersion": 5,
+  "guardrailVersion": "1.5.0",
+  "description": "Canonical adoption-layer model and risk-tier mapping for the cursor-guardrails hub. Single source of truth for /guardrail-upgrade, the thin consumer starter (cursor-guardrails-starter), and downstream governance tools such as Throughline. Do not edit by hand — changes must be deliberate and version-bumped. Verified against the actual file tree by .github/scripts/check-manifest-drift.mjs in CI.",
   "source": "https://github.com/AGM82/cursor-guardrails",
-  "lastUpdated": "2026-07-05",
+  "starterSource": "https://github.com/AGM82/cursor-guardrails-starter",
+  "lastUpdated": "2026-07-14",
   "adoptionLayers": {
     "1": {
       "name": "AI instructions",
@@ -265,6 +266,40 @@
       }
     ]
   },
+  "templateMeta": {
+    "description": "Hub-only paths that live in this cursor-guardrails repo (playbook, Throughline contracts, scheduled AI reviews, version propagation) but must NEVER be copied into a consumer project by /guardrail-upgrade or synced into cursor-guardrails-starter. New products use the starter via GitHub 'Use this template'; this hub is the reference clone for upgrades. Worked example: docs/worked-example-africa-risk-map.md (PR that deleted ~5.5k lines of inherited hub meta).",
+    "files": [
+      "playbook.html",
+      "_headers",
+      "docs/cloudflare-setup.md",
+      "docs/connect-guardrails.md",
+      "docs/guardrail-prescription.md",
+      "docs/links.md",
+      "docs/project-lifecycle.md",
+      "docs/throughline-github-app-prompt.md",
+      "docs/throughline-integration-prompt.md",
+      "docs/throughline-lifecycle-prompt.md",
+      "docs/consumer-adaptations.md",
+      "docs/post-generate-cleanup.md",
+      "docs/worked-example-africa-risk-map.md",
+      "docs/cursor-version.txt",
+      "docs/user-level-rule.md",
+      ".github/workflows/bi-weekly-ai-review.yml",
+      ".github/workflows/weekly-guardrail-review.yml",
+      ".github/workflows/propagate-guardrail-version.yml",
+      ".github/workflows/sync-starter-template.yml",
+      ".github/scripts/ai-review.mjs",
+      ".github/scripts/weekly-guardrail-review-manage-issue.sh",
+      ".github/scripts/sync-starter-template.mjs",
+      ".github/ai-review-decisions.json",
+      ".github/ai-review-watchlist.json"
+    ],
+    "starterIncludesConsumerDocs": [
+      "docs/bootstrap-guardrail-upgrade.md",
+      "docs/guardrail-layers.md",
+      "docs/guardrail-upgrade-observations.md"
+    ]
+  },
   "schemaChangelog": [
     {
       "schemaVersion": 1,
@@ -305,6 +340,11 @@
       "schemaVersion": 4,
       "date": "2026-07-05",
       "note": "Adds a new top-level lifecycleStages block — the data model for automated, deterministic detection of which of the 8 docs/project-lifecycle.md stages a project is in, derived from GitHub facts (check-run results, PR review state, merge status) rather than an AI's read of the code. Includes ciCheckNames so downstream tools (e.g. a Throughline GitHub App integration) key off this template's actual CI check-run names instead of guessing or hardcoding a second copy. Additive schema change (schemaVersion 3 -> 4); guardrailVersion minor bump (new mapping/domain added, per the existing convention)."
+    },
+    {
+      "schemaVersion": 5,
+      "date": "2026-07-14",
+      "note": "Adds templateMeta — hub-only paths that must never be copied into consumer projects or the thin cursor-guardrails-starter. Driven by the Africa Risk Map worked example (docs/worked-example-africa-risk-map.md): 'Use this template' from the fat hub forced a ~5.5k-line day-one delete of playbook/Throughline/AI-review scaffolding. Layers 1–5 remain the only upgrade/sync surface. Also documents starterSource. Additive schema change (schemaVersion 4 -> 5); guardrailVersion minor bump 1.4.0 -> 1.5.0."
     }
   ]
 }
