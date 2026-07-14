@@ -99,6 +99,19 @@ jobs:
           cd "$WORK"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Bootstrap path: a brand-new starter repo has no commits, so there is no
+          # base branch to open a PR against. Push the first import straight to main.
+          if ! git rev-parse --verify HEAD >/dev/null 2>&1; then
+            git checkout -B main
+            git add -A
+            git commit -m "chore(sync): import guardrails v${VERSION} from hub"
+            git push -u origin main
+            echo "### Starter bootstrapped" >> "$GITHUB_STEP_SUMMARY"
+            echo "Initial guardrails v${VERSION} pushed to main. Future syncs open PRs." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          # Normal path: open a PR against the starter's actual default branch.
+          BASE_BRANCH=$(gh repo view "$STARTER_REPO" --json defaultBranchRef --jq '.defaultBranchRef.name')
           git checkout -B "$BRANCH"
           git add -A
           if git diff --cached --quiet; then
@@ -112,7 +125,7 @@ jobs:
             gh pr create --repo "$STARTER_REPO" \
               --title "chore(sync): guardrails v${VERSION} from hub" \
               --body "Auto-synced from AGM82/cursor-guardrails at v${VERSION}. Hub-only templateMeta paths excluded." \
-              --base main \
+              --base "$BASE_BRANCH" \
               --head "$BRANCH"
           else
             echo "Updated existing PR #${EXISTING}"
