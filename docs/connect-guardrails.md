@@ -81,7 +81,7 @@ Path B gives Throughline a one-time snapshot: a tier and a required-layer list, 
 
 ## New project vs. adopting on an existing one
 
-If you are starting a brand-new project rather than adopting on Project X, use GitHub's **Use this template** button instead of a plain clone — see the "Start a new project" tab in the playbook, or the README's "Setup (new project)" section. That creates your own independent repo with no live link back to `cursor-guardrails`, which is correct for a new project. To receive future guardrail improvements in that new project later, keep a separate reference clone (as in Path A step 1) and run `/guardrail-upgrade` inside it — the same tool described above.
+If you are starting a brand-new project rather than adopting on Project X, use GitHub's **Use this template** button on the thin **starter** ([cursor-guardrails-starter](https://github.com/AGM82/cursor-guardrails-starter)) instead of a plain clone — see the "Start a new project" tab in the playbook, or the README's "Setup (new project)" section. Do **not** template the `cursor-guardrails` hub itself; it ships hub-only playbook/Throughline/AI-review scaffolding. Templating the starter creates your own independent repo with no live link back, which is correct for a new project. To receive future guardrail improvements in that new project later, keep a separate reference clone of the **hub** (as in Path A step 1) and run `/guardrail-upgrade` inside it — the same tool described above.
 
 ## See also
 
