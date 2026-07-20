@@ -47,8 +47,8 @@ Prose rules are _advisory_ — an agent can drift from them after a few turns. L
 ## Setup (new project)
 
 1. Create a repo from the **starter** (GitHub → [cursor-guardrails-starter](https://github.com/AGM82/cursor-guardrails-starter) → **Use this template**). Do not use **Use this template** on _this_ hub repo.
-2. `npm install` (installs dependencies and activates the husky hooks). If you use `nvm`, run `nvm use` first to match `.nvmrc`.
-3. `npm run typecheck`, `npm run lint`, and `npm run test` to confirm the toolchain resolves (see Notes if a plugin import needs adjusting).
+2. `npm install` (installs dependencies and activates the husky hooks). If you use `nvm` / `fnm`, run `nvm use` / `fnm use` first so PATH matches `.nvmrc` (Node **22**, `engines.node` `>=22.12.0`).
+3. `npm run check:runtime`, then `npm run typecheck`, `npm run lint`, and `npm run test` to confirm the toolchain resolves (see Notes if a plugin import needs adjusting).
 4. Optional: install [gitleaks](https://github.com/gitleaks/gitleaks#installing) for local secret scanning. CI enforces it regardless.
 5. Fill in `.cursor/rules/90-project-context.mdc` and the other per-project items above.
 6. Replace the demo under `src/` with your product. Commit. Husky, commitlint, and the Cursor hooks are active from the first commit.

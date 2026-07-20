@@ -62,6 +62,7 @@ const EXTRA = [
   'components.json',
   'index.html',
   '.github/scripts/check-manifest-drift.mjs',
+  '.github/scripts/check-runtime.mjs',
   ...consumerDocs,
 ];
 
