@@ -31,6 +31,7 @@ alwaysApply: false
 - `react` and `react-dom` must always be updated together — the `react-runtime` group in `dependabot.yml` batches them into a single PR.
 - Do not merge a grouped dev-dependency PR that fails CI; close it and update packages individually.
 - ESLint major bumps (`eslint`, `@eslint/js`, `typescript-eslint`) require an explicit plugin-compatibility check before merging — `eslint-plugin-jsx-a11y` and similar plugins frequently cap at the previous major. Dependabot ignores these by default; perform them manually when ready.
+- TypeScript major bumps are ignored by Dependabot until `typescript-eslint` supports them. TypeScript 7.0 does not expose the stable Compiler API type-aware ESLint needs (`TypeError: ... reading 'Cjs'`); stay on TypeScript 6.x for lint until upstream support lands (see typescript-eslint#12518).
 
 # Third-party rules, skills, and MCP servers
 
