@@ -1,10 +1,10 @@
 {
   "schemaVersion": 5,
-  "guardrailVersion": "1.5.0",
+  "guardrailVersion": "1.5.1",
   "description": "Canonical adoption-layer model and risk-tier mapping for the cursor-guardrails hub. Single source of truth for /guardrail-upgrade, the thin consumer starter (cursor-guardrails-starter), and downstream governance tools such as Throughline. Do not edit by hand — changes must be deliberate and version-bumped. Verified against the actual file tree by .github/scripts/check-manifest-drift.mjs in CI.",
   "source": "https://github.com/AGM82/cursor-guardrails",
   "starterSource": "https://github.com/AGM82/cursor-guardrails-starter",
-  "lastUpdated": "2026-07-14",
+  "lastUpdated": "2026-07-20",
   "adoptionLayers": {
     "1": {
       "name": "AI instructions",
@@ -345,6 +345,11 @@
       "schemaVersion": 5,
       "date": "2026-07-14",
       "note": "Adds templateMeta — hub-only paths that must never be copied into consumer projects or the thin cursor-guardrails-starter. Driven by the Africa Risk Map worked example (docs/worked-example-africa-risk-map.md): 'Use this template' from the fat hub forced a ~5.5k-line day-one delete of playbook/Throughline/AI-review scaffolding. Layers 1–5 remain the only upgrade/sync surface. Also documents starterSource. Additive schema change (schemaVersion 4 -> 5); guardrailVersion minor bump 1.4.0 -> 1.5.0."
+    },
+    {
+      "schemaVersion": 5,
+      "date": "2026-07-20",
+      "note": "No schema change — Node/jsdom/Rolldown runtime guardrails. .nvmrc major 22 + package.json engines.node >=22.12.0 (Vite 8 / Rolldown floor; rejects the 22.11 engine gap). Pins jsdom to ^26.1.0 (ERR_REQUIRE_ESM / @exodus/bytes failure class). Adds .github/scripts/check-runtime.mjs (npm run check:runtime) wired in CI before test; syncs via starter EXTRA. guardrailVersion patch 1.5.0 -> 1.5.1."
     }
   ]
 }

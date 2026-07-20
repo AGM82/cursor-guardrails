@@ -157,6 +157,29 @@ rule set produced irrelevant errors.
 
 ---
 
+## Resolved later (guardrail v1.5.1) — Node / jsdom / Rolldown bootstrap failures
+
+Consumer evidence (Windows, July 2026) showed two related failure modes after a
+Vite 8 / Vitest stack:
+
+1. **jsdom → `ERR_REQUIRE_ESM` / `@exodus/bytes`:** jsdom 27+ can load
+   ESM-only `@exodus/bytes` via `require()` through `html-encoding-sniffer`,
+   crashing Vitest’s jsdom environment. **Decision:** pin `jsdom` to
+   `^26.1.0` (known-good) until upstream is safe to re-float.
+2. **Missing `@rolldown/binding-win32-*`:** npm skipped the optional native
+   binding when Node sat in the Vite/Rolldown engine gap (`v22.11.0`; bindings
+   need `^20.19.0 || >=22.12.0`), often because a broken Node manager/PATH
+   preferred a standalone 22.11 while `.nvmrc` said a different major.
+
+**Decision (single source of truth):** keep Vite 8; set `.nvmrc` to major
+`22` (weekly LTS bot still compares majors), set `package.json`
+`engines.node` to `>=22.12.0` (rejects 22.11), and add
+`npm run check:runtime` (`.github/scripts/check-runtime.mjs`) which fails
+fast on unsupported Node or a missing platform Rolldown binding. CI runs it
+after `npm ci` and before test. See `CONTRIBUTING.md` Troubleshooting.
+
+---
+
 ## Roadmap items (not automated in this release)
 
 These are documented for awareness; they are not in scope for the current release:
@@ -164,10 +187,6 @@ These are documented for awareness; they are not in scope for the current releas
 - **Scheduled drift detection:** a GitHub Action that opens an issue when the
   project's `.cursor/guardrail-version` lags the template's latest tag by more
   than one minor version.
-
-- **Node version upgrade path:** `.nvmrc` ships `20`; Vite 8 requires `22.12+`.
-  Projects wanting Vite 8 should bump `.nvmrc` to `22.12` and update the CI
-  `node-version` matrix. Document in `CONTRIBUTING.md` when ready.
 
 - **`gitleaks` local install guide:** CI enforces secret scanning regardless, but
   local install gives faster feedback. Add installation steps to `CONTRIBUTING.md`

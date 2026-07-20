@@ -32,6 +32,10 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      - name: Check runtime
+        run: |
+          npm run check:runtime
+          node .github/scripts/check-runtime.mjs --self-test
       - name: Typecheck
         run: npm run typecheck
       - name: Lint
